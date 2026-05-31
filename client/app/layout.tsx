@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { CartProvider } from "@/lib/cart";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Crumb Stall",
-  description: "Fast, student-friendly food ordering for campus cravings.",
+  title: "Crumb Stall Menu",
+  description: "Scan, order, and pick up fresh food from Crumb Stall.",
 };
 
 export default function RootLayout({
@@ -27,7 +28,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <CartProvider>{children}</CartProvider>
+      </body>
     </html>
   );
 }

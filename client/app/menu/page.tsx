@@ -1,5 +1,5 @@
 import { MenuScreen } from "@/components/menu-screen";
 
-export default function Home() {
+export default function MenuPage() {
   return <MenuScreen />;
 }
