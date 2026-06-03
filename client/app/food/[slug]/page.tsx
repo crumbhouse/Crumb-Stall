@@ -2,12 +2,20 @@ import Link from "next/link";
 import Image from "next/image";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { CustomerNav } from "@/components/customer-nav";
+import { FavoriteButton } from "@/components/favorite-button";
 import { MobileBar } from "@/components/mobile-bar";
-import { getFoodBySlug } from "@/lib/catalog";
+import { ReviewSection } from "@/components/review-section";
+import { getFoodBySlug, getFoodImageUrl } from "@/lib/catalog";
+import { getFavoriteIds } from "@/lib/favorites";
+import { getFoodReviews } from "@/lib/reviews";
 
 export default async function FoodDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const item = await getFoodBySlug(slug);
+  const [item, favorites, reviews] = await Promise.all([
+    getFoodBySlug(slug),
+    getFavoriteIds(),
+    getFoodReviews(slug),
+  ]);
 
   if (!item) {
     return (
@@ -22,15 +30,16 @@ export default async function FoodDetailPage({ params }: { params: Promise<{ slu
       </main>
     );
   }
+  const imageUrl = getFoodImageUrl(item);
 
   return (
     <main className="min-h-screen bg-[#f6f6f4] pb-24 text-[#171717]">
       <CustomerNav />
       <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_420px] lg:px-8">
         <div className="overflow-hidden rounded-lg border border-[#e8e8e3] bg-white shadow-sm">
-          {item.imageUrl ? (
+          {imageUrl ? (
             <Image
-              src={item.imageUrl}
+              src={imageUrl}
               alt={item.name}
               width={900}
               height={675}
@@ -44,6 +53,12 @@ export default async function FoodDetailPage({ params }: { params: Promise<{ slu
             {item.category.name}
           </p>
           <h1 className="mt-3 text-4xl font-black leading-tight">{item.name}</h1>
+          <div className="relative mt-4 h-10">
+            <FavoriteButton
+              slug={item.slug}
+              initialIsFavorite={favorites.slugs.includes(item.slug)}
+            />
+          </div>
           <div className="mt-4 flex items-center gap-2 text-sm font-bold">
             <span className="rounded-md bg-[#fff8db] px-2 py-1 text-[#8a5a00]">★ {item.ratingAverage}</span>
             <span className="text-[#646464]">{item.ratingCount} ratings</span>
@@ -75,6 +90,7 @@ export default async function FoodDetailPage({ params }: { params: Promise<{ slu
           </Link>
         </aside>
       </section>
+      <ReviewSection slug={item.slug} initialReviews={reviews} />
       <MobileBar />
     </main>
   );

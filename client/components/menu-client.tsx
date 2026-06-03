@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { CartSummaryBar } from "@/components/cart-summary-bar";
 import { CustomerNav } from "@/components/customer-nav";
 import { FoodCard } from "@/components/food-card";
 import { MobileBar } from "@/components/mobile-bar";
-import type { Category, FoodItem } from "@/lib/catalog";
+import { getFoodImageUrl, type Category, type FoodItem } from "@/lib/catalog";
+import { getFavoriteIds } from "@/lib/favorites";
 
 type ActiveFilter = "all" | "recommended" | "combos" | "under-100" | "top-rated" | "veg";
 
@@ -23,9 +24,11 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
+  const [favoriteSlugs, setFavoriteSlugs] = useState<string[]>([]);
 
   const featured = foods.filter((item) => item.isFeatured);
   const combo = foods.find((item) => item.slug === "burger-coffee-combo") ?? featured[0];
+  const comboImageUrl = combo ? getFoodImageUrl(combo) : null;
 
   const filteredFoods = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -65,10 +68,34 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
       ? "All categories"
       : categories.find((category) => category.slug === activeCategory)?.name ?? "Category";
 
+  useEffect(() => {
+    let isMounted = true;
+
+    getFavoriteIds().then((favorites) => {
+      if (isMounted) {
+        setFavoriteSlugs(favorites.slugs);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   function clearFilters() {
     setQuery("");
     setActiveCategory("all");
     setActiveFilter("all");
+  }
+
+  function handleFavoriteChange(slug: string, isFavorite: boolean) {
+    setFavoriteSlugs((currentSlugs) => {
+      if (isFavorite) {
+        return currentSlugs.includes(slug) ? currentSlugs : [...currentSlugs, slug];
+      }
+
+      return currentSlugs.filter((currentSlug) => currentSlug !== slug);
+    });
   }
 
   return (
@@ -76,7 +103,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
       <CustomerNav />
 
       <section className="border-b border-[#e8e8e3] bg-white">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8 lg:py-8">
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[1fr_420px] lg:px-8 lg:py-7">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-md bg-[#ecfdf3] px-3 py-1 text-xs font-black text-[#166534]">
@@ -94,7 +121,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
               <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
                 Crumb Stall menu
               </p>
-              <h1 className="mt-2 text-4xl font-black tracking-tight text-[#171717] sm:text-5xl lg:text-6xl">
+              <h1 className="mt-2 text-4xl font-black tracking-tight text-[#171717] sm:text-5xl">
                 Fresh food, ready when your break starts.
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-7 text-[#646464]">
@@ -150,6 +177,9 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
           </div>
 
           <aside className="overflow-hidden rounded-lg bg-[#171717] text-white shadow-[0_18px_50px_rgba(20,20,20,0.18)]">
+            {comboImageUrl ? (
+              <div className="h-36 bg-cover bg-center" style={{ backgroundImage: `url(${comboImageUrl})` }} />
+            ) : null}
             <div className="p-5">
               <p className="text-sm font-black uppercase tracking-[0.16em] text-[#ffb8bf]">
                 Today&apos;s crowd favorite
@@ -264,7 +294,12 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {featured.map((item) => (
-              <FoodCard key={item.id} item={item} />
+              <FoodCard
+                key={item.id}
+                item={item}
+                isFavorite={favoriteSlugs.includes(item.slug)}
+                onFavoriteChange={handleFavoriteChange}
+              />
             ))}
           </div>
         </section>
@@ -301,7 +336,12 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredFoods.map((item) => (
-              <FoodCard key={item.id} item={item} />
+              <FoodCard
+                key={item.id}
+                item={item}
+                isFavorite={favoriteSlugs.includes(item.slug)}
+                onFavoriteChange={handleFavoriteChange}
+              />
             ))}
           </div>
         )}

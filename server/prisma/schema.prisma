@@ -222,6 +222,7 @@ model OrderItem {
   orderId     String
   foodItemId  String
   name        String
+  note        String?
   quantity    Int
   unitPrice   Decimal  @db.Decimal(10, 2)
   totalPrice  Decimal  @db.Decimal(10, 2)

@@ -8,6 +8,7 @@ Crumb Stall is a mobile-first food ordering platform for a student-focused food 
 - `server`: NestJS API
 - `server/prisma`: Prisma schema and seed data
 - `docker-compose.yml`: Optional local Redis service
+- `PROJECT_STATUS.md`: completed work and local setup handoff notes
 
 ## Phase 0 Foundation
 
@@ -77,3 +78,34 @@ This milestone establishes:
    cd client
    npm run dev
    ```
+
+## Google OAuth
+
+Auth.js is configured in the frontend through `client/app/api/auth/[...nextauth]`.
+To enable Google login locally:
+
+1. Create OAuth credentials in Google Cloud Console.
+2. Add this authorized redirect URI:
+
+   ```text
+   http://localhost:3000/api/auth/callback/google
+   ```
+
+3. Set these values in `client/.env.local`:
+
+   ```text
+   NEXTAUTH_URL="http://localhost:3000"
+   NEXTAUTH_SECRET="generate-a-long-random-secret"
+   GOOGLE_CLIENT_ID="your-google-client-id"
+   GOOGLE_CLIENT_SECRET="your-google-client-secret"
+   AUTH_SYNC_SECRET="same-long-random-sync-secret-as-server"
+   ```
+
+4. Set this matching value in `server/.env`:
+
+   ```text
+   AUTH_SYNC_SECRET="same-long-random-sync-secret-as-client"
+   ```
+
+After Google sign-in, the frontend syncs the profile to the backend through
+`POST /api/v1/auth/google/sync`.

@@ -1,36 +1,55 @@
 import Link from "next/link";
 import Image from "next/image";
 import { AddToCartButton } from "@/components/add-to-cart-button";
-import type { FoodItem } from "@/lib/catalog";
+import { FavoriteButton } from "@/components/favorite-button";
+import { getFoodImageUrl, type FoodItem } from "@/lib/catalog";
 
-export function FoodCard({ item }: { item: FoodItem }) {
+export function FoodCard({
+  item,
+  isFavorite = false,
+  onFavoriteChange,
+}: {
+  item: FoodItem;
+  isFavorite?: boolean;
+  onFavoriteChange?: (slug: string, isFavorite: boolean) => void;
+}) {
+  const imageUrl = getFoodImageUrl(item);
+
   return (
     <article className="group overflow-hidden rounded-lg border border-[#e8e8e3] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(20,20,20,0.08)]">
-      <Link href={`/food/${item.slug}`} className="block">
-        <div className="relative aspect-[4/3] bg-[#f1f1ee]">
-          {item.imageUrl ? (
-            <Image
-              src={item.imageUrl}
-              alt={item.name}
-              width={600}
-              height={450}
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-4xl font-black text-[#d6d6cf]">
-              {item.name.slice(0, 2)}
-            </div>
-          )}
-          {item.discountPrice ? (
-            <span className="absolute left-3 top-3 rounded-md bg-[#171717] px-2.5 py-1 text-xs font-black text-white">
-              Save Rs {item.price - item.discountPrice}
-            </span>
-          ) : null}
-        </div>
-      </Link>
+      <div className="relative">
+        <Link href={`/food/${item.slug}`} className="block">
+          <div className="aspect-[4/3] bg-[#f1f1ee]">
+            {imageUrl ? (
+              <Image
+                src={imageUrl}
+                alt={item.name}
+                width={600}
+                height={450}
+                className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-4xl font-black text-[#d6d6cf]">
+                {item.name.slice(0, 2)}
+              </div>
+            )}
+            {item.discountPrice ? (
+              <span className="absolute left-3 top-3 rounded-md bg-[#171717] px-2.5 py-1 text-xs font-black text-white">
+                Save Rs {item.price - item.discountPrice}
+              </span>
+            ) : null}
+          </div>
+        </Link>
+        <FavoriteButton
+          slug={item.slug}
+          initialIsFavorite={isFavorite}
+          onChange={(nextValue) => onFavoriteChange?.(item.slug, nextValue)}
+          className="absolute right-3 top-3 z-10"
+        />
+      </div>
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[#e23744]">
               {item.category.name}
             </p>

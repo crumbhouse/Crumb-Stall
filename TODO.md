@@ -46,36 +46,51 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add checkout summary using live cart state.
 - [x] Add live menu search and filters on the client.
 - [x] Add item customization notes such as “less spicy” or “no onion”.
+- [x] Add cart coupon input and validation UI.
+- [x] Add checkout pickup-time validation.
+- [x] Integrate Razorpay order creation and payment verification.
+- [x] Create real order after successful payment.
+- [x] Add real order tracking statuses.
+- [x] Add OTP display for ready orders.
+- [x] Add order history from backend.
+- [x] Add invoice view from backend invoice data.
+- [x] Add PDF invoice download.
+- [x] Add favorites persistence.
+- [x] Add purchased-item-only reviews.
+- [x] Add Swagger/OpenAPI setup.
+- [x] Add validation pipe and DTO validation strategy.
+- [x] Add Google OAuth/Auth.js integration.
+- [x] Add user session/JWT flow.
 - [x] Verify client lint and build.
 - [x] Verify server tests and build after backend foundation work.
 
 ## Next Task
 
-- [ ] Add cart coupon input and validation UI.
+- [ ] Connect cart to backend cart APIs after auth exists.
 
 ## Customer Flow
 
 - [x] Make menu search/filter UI fully interactive.
 - [x] Add item customization notes if needed, such as “less spicy” or “no onion”.
-- [ ] Add cart coupon input and validation UI.
+- [x] Add cart coupon input and validation UI.
 - [ ] Connect cart to backend cart APIs after auth exists.
-- [ ] Add checkout pickup-time validation.
-- [ ] Integrate Razorpay order creation and payment verification.
-- [ ] Create real order after successful payment.
-- [ ] Add real order tracking statuses.
-- [ ] Add OTP display for ready orders.
-- [ ] Add order history from backend.
-- [ ] Add invoice view from backend invoice data.
-- [ ] Add PDF invoice download.
-- [ ] Add favorites persistence.
-- [ ] Add purchased-item-only reviews.
+- [x] Add checkout pickup-time validation.
+- [x] Integrate Razorpay order creation and payment verification.
+- [x] Create real order after successful payment.
+- [x] Add real order tracking statuses.
+- [x] Add OTP display for ready orders.
+- [x] Add order history from backend.
+- [x] Add invoice view from backend invoice data.
+- [x] Add PDF invoice download.
+- [x] Add favorites persistence.
+- [x] Add purchased-item-only reviews.
 
 ## Backend APIs
 
-- [ ] Add Swagger/OpenAPI setup.
-- [ ] Add validation pipe and DTO validation strategy.
-- [ ] Add Google OAuth/Auth.js integration.
-- [ ] Add user session/JWT flow.
+- [x] Add Swagger/OpenAPI setup.
+- [x] Add validation pipe and DTO validation strategy.
+- [x] Add Google OAuth/Auth.js integration.
+- [x] Add user session/JWT flow.
 - [ ] Add RBAC guards for admin routes.
 - [ ] Add cart APIs.
 - [ ] Add coupon validation APIs.
@@ -83,9 +98,9 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [ ] Add Razorpay payment create/verify APIs.
 - [ ] Add order status update APIs.
 - [ ] Add OTP generation, hashing, expiry, attempts, and verification APIs.
-- [ ] Add invoice generation service.
-- [ ] Add review APIs.
-- [ ] Add favorites APIs.
+- [x] Add invoice generation service.
+- [x] Add review APIs.
+- [x] Add favorites APIs.
 - [ ] Add notifications APIs.
 - [ ] Add recommendation APIs.
 - [ ] Add analytics APIs.

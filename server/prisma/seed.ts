@@ -148,6 +148,20 @@ async function main() {
       minimumAmount: 99,
     },
   });
+
+  await prisma.coupon.upsert({
+    where: { code: 'SAVE50' },
+    update: {},
+    create: {
+      code: 'SAVE50',
+      type: CouponType.FIXED_AMOUNT,
+      value: 50,
+      startsAt: new Date('2026-01-01T00:00:00.000Z'),
+      endsAt: new Date('2027-01-01T00:00:00.000Z'),
+      usageLimit: 2000,
+      minimumAmount: 299,
+    },
+  });
 }
 
 main()

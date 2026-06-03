@@ -1,11 +1,109 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { CustomerNav } from "@/components/customer-nav";
-import { useCart } from "@/lib/cart";
+import { PICKUP_SLOTS, useCart } from "@/lib/cart";
+import { createCheckoutOrder, createRazorpayOrder, loadRazorpayCheckout } from "@/lib/payments";
 
 export default function CheckoutPage() {
-  const { items, subtotal, tax, total } = useCart();
+  const router = useRouter();
+  const { items, subtotal, discount, tax, total, coupon, pickupSlot, setPickupSlot, clearCart } =
+    useCart();
+  const [pickupError, setPickupError] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isPaying, setIsPaying] = useState(false);
+  const canPay = items.length > 0 && Boolean(pickupSlot);
+
+  async function handlePaymentClick() {
+    if (items.length === 0) {
+      router.push("/menu");
+      return;
+    }
+
+    if (!pickupSlot) {
+      setPickupError("Choose a pickup time before payment.");
+      return;
+    }
+
+    setIsPaying(true);
+    setPaymentError(null);
+
+    try {
+      const order = await createRazorpayOrder(total);
+
+      if (order.mode === "mock") {
+        const createdOrder = await createCheckoutOrder({
+          items: items.map(({ item, quantity, note }) => ({
+            foodItemId: item.id,
+            slug: item.slug,
+            quantity,
+            note,
+          })),
+          couponCode: coupon?.code,
+          pickupSlot,
+          payment: {
+            razorpayOrderId: order.orderId,
+            razorpayPaymentId: `pay_mock_${Date.now()}`,
+            razorpaySignature: "mock_signature",
+          },
+        });
+        clearCart();
+        router.push(`/orders/${createdOrder.orderNumber}`);
+        return;
+      }
+
+      const isLoaded = await loadRazorpayCheckout();
+
+      if (!isLoaded || !window.Razorpay) {
+        throw new Error("Razorpay Checkout could not be loaded.");
+      }
+
+      const razorpay = new window.Razorpay({
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency,
+        name: "Crumb Stall",
+        description: "Food pickup order",
+        order_id: order.orderId,
+        handler: async (response) => {
+          try {
+            const createdOrder = await createCheckoutOrder({
+              items: items.map(({ item, quantity, note }) => ({
+                foodItemId: item.id,
+                slug: item.slug,
+                quantity,
+                note,
+              })),
+              couponCode: coupon?.code,
+              pickupSlot,
+              payment: {
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              },
+            });
+            clearCart();
+            router.push(`/orders/${createdOrder.orderNumber}`);
+          } catch {
+            setPaymentError("Payment verification failed. Please contact the stall counter.");
+            setIsPaying(false);
+          }
+        },
+        modal: {
+          ondismiss: () => setIsPaying(false),
+        },
+        theme: {
+          color: "#e23744",
+        },
+      });
+
+      razorpay.open();
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : "Payment could not be started.");
+      setIsPaying(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#f6f6f4] text-[#171717]">
@@ -19,20 +117,40 @@ export default function CheckoutPage() {
           <div className="mt-6 space-y-4">
             <div className="rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
               <p className="font-black">Pickup time</p>
+              <p className="mt-1 text-sm font-semibold text-[#646464]">
+                We will use this to prepare your order and generate the pickup window.
+              </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                {["ASAP", "15 min", "30 min"].map((slot, index) => (
+                {PICKUP_SLOTS.map((slot) => {
+                  const isSelected = pickupSlot?.id === slot.id;
+
+                  return (
                   <button
-                    key={slot}
+                    key={slot.id}
+                    type="button"
+                    onClick={() => {
+                      setPickupSlot(slot);
+                      setPickupError(null);
+                    }}
                     className={`rounded-md border px-4 py-3 text-sm font-black ${
-                      index === 0
+                      isSelected
                         ? "border-[#e23744] bg-[#fff0f2] text-[#b91c2b]"
                         : "border-[#e8e8e3] hover:border-[#e23744] hover:bg-[#fff0f2]"
                     }`}
                   >
-                    {slot}
+                    <span className="block">{slot.label}</span>
+                    <span className="mt-1 block text-xs font-semibold opacity-75">
+                      {slot.description}
+                    </span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
+              {pickupError ? (
+                <p className="mt-3 rounded-md bg-[#fff0f2] px-3 py-2 text-sm font-bold text-[#b91c2b]">
+                  {pickupError}
+                </p>
+              ) : null}
             </div>
             <div className="rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
               <p className="font-black">Coupon</p>
@@ -74,9 +192,21 @@ export default function CheckoutPage() {
           )}
           <div className="mt-5 space-y-3 border-t border-[#e8e8e3] pt-4 text-sm text-[#555]">
             <div className="flex justify-between">
+              <span>Pickup</span>
+              <span className={pickupSlot ? "font-black text-[#171717]" : "font-bold text-[#b91c2b]"}>
+                {pickupSlot ? pickupSlot.label : "Not selected"}
+              </span>
+            </div>
+            <div className="flex justify-between">
               <span>Subtotal</span>
               <span>Rs {subtotal}</span>
             </div>
+            {discount > 0 ? (
+              <div className="flex justify-between text-[#166534]">
+                <span>Discount{coupon ? ` (${coupon.code})` : ""}</span>
+                <span>- Rs {discount}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between">
               <span>Tax</span>
               <span>Rs {tax}</span>
@@ -86,12 +216,22 @@ export default function CheckoutPage() {
               <span>Rs {total}</span>
             </div>
           </div>
-          <Link
-            href={items.length > 0 ? "/orders/CS-1001" : "/menu"}
-            className="mt-6 flex justify-center rounded-md bg-[#e23744] px-5 py-4 font-black text-white transition hover:bg-[#b91c2b]"
+          {paymentError ? (
+            <p className="mt-4 rounded-md bg-[#fff0f2] px-3 py-2 text-sm font-bold text-[#b91c2b]">
+              {paymentError}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={handlePaymentClick}
+            disabled={isPaying}
+            aria-disabled={!canPay || isPaying}
+            className={`mt-6 flex justify-center rounded-md px-5 py-4 font-black text-white transition ${
+              canPay && !isPaying ? "bg-[#e23744] hover:bg-[#b91c2b]" : "bg-[#9a9a92]"
+            }`}
           >
-            {items.length > 0 ? "Pay with Razorpay" : "Back to menu"}
-          </Link>
+            {isPaying ? "Starting payment..." : items.length > 0 ? "Pay with Razorpay" : "Back to menu"}
+          </button>
         </aside>
       </section>
     </main>

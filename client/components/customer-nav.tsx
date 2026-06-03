@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthNavAction } from "@/components/auth-nav-action";
 
 const links = [
   { href: "/menu", label: "Menu" },
@@ -9,7 +10,7 @@ const links = [
 
 export function CustomerNav() {
   return (
-    <header className="sticky top-0 z-30 border-b border-[#e8e8e3] bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-30 mb-4 border-b border-[#e8e8e3] bg-white/95 backdrop-blur sm:mb-6">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link href="/menu" className="flex items-center gap-3">
           <span className="flex size-10 items-center justify-center rounded-lg bg-[#e23744] text-base font-black text-white shadow-sm">
@@ -33,12 +34,7 @@ export function CustomerNav() {
           ))}
         </nav>
 
-        <Link
-          href="/login"
-          className="rounded-full bg-[#171717] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#2b2b2b]"
-        >
-          Login
-        </Link>
+        <AuthNavAction />
       </div>
     </header>
   );

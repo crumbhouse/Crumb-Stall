@@ -140,6 +140,16 @@ export const fallbackFoods: FoodItem[] = [
   },
 ];
 
+const fallbackFoodImages: Record<string, string> = Object.fromEntries(
+  fallbackFoods
+    .map((item) => [item.slug, item.imageUrl])
+    .filter((entry): entry is [string, string] => Boolean(entry[1])),
+);
+
+export function getFoodImageUrl(item: Pick<FoodItem, "slug" | "imageUrl">) {
+  return item.imageUrl ?? fallbackFoodImages[item.slug] ?? null;
+}
+
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
 
 export async function getCatalogPreview() {
