@@ -90,7 +90,7 @@ export async function verifyRazorpayPayment(payload: VerifyRazorpayPaymentPayloa
 }
 
 export async function createCheckoutOrder(payload: CheckoutOrderPayload) {
-  const response = await fetch(`${apiUrl}/orders/checkout`, {
+  const response = await fetch("/api/checkout/orders", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -134,6 +134,10 @@ declare global {
       name: string;
       description: string;
       order_id: string;
+      prefill?: {
+        email?: string;
+        contact?: string;
+      };
       handler: (response: {
         razorpay_order_id: string;
         razorpay_payment_id: string;

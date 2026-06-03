@@ -9,8 +9,6 @@ export type FavoriteIdsResponse = {
   slugs: string[];
 };
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
-
 export async function getFavorites(): Promise<FavoritesResponse> {
   return fetchJson<FavoritesResponse>("/favorites", { data: [] });
 }
@@ -28,7 +26,7 @@ export async function removeFavorite(slug: string) {
 }
 
 async function mutateFavorite(slug: string, method: "POST" | "DELETE") {
-  const response = await fetch(`${apiUrl}/favorites/${encodeURIComponent(slug)}`, {
+  const response = await fetch(`/api/favorites/${encodeURIComponent(slug)}`, {
     method,
   });
 
@@ -41,8 +39,8 @@ async function mutateFavorite(slug: string, method: "POST" | "DELETE") {
 
 async function fetchJson<T>(path: string, fallback: T): Promise<T> {
   try {
-    const response = await fetch(`${apiUrl}${path}`, {
-      next: { revalidate: 5 },
+    const response = await fetch(`${getAppUrl()}/api${path}`, {
+      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -53,4 +51,8 @@ async function fetchJson<T>(path: string, fallback: T): Promise<T> {
   } catch {
     return fallback;
   }
+}
+
+function getAppUrl() {
+  return process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 }

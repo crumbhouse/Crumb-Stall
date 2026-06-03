@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 
@@ -27,11 +26,12 @@ export function AuthNavAction() {
   return (
     <div className="flex items-center gap-2">
       {session.user.image ? (
-        <Image
+        // Google profile images are already tiny avatars; using img avoids dev-server
+        // restarts when OAuth image hosts change.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
           src={session.user.image}
           alt={session.user.name ?? "Crumb Stall customer"}
-          width={36}
-          height={36}
           className="size-9 rounded-full object-cover"
         />
       ) : (

@@ -1,48 +1,50 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { CouponType, OrderStatus, PaymentStatus, Prisma } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { OrderStatus, PaymentStatus, Prisma } from '@prisma/client';
+import { timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
+import { CouponsService } from '../coupons/coupons.service';
 import { OtpService } from '../otp/otp.service';
 import { PaymentsService } from '../payments/payments.service';
 import { CreateCheckoutOrderDto } from './dto/create-checkout-order.dto';
 import { ListOrdersQuery } from './dto/list-orders-query.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
-const FALLBACK_COUPONS = {
-  WELCOME10: {
-    type: CouponType.PERCENTAGE,
-    value: 10,
-    minimumAmount: 99,
-  },
-  SAVE50: {
-    type: CouponType.FIXED_AMOUNT,
-    value: 50,
-    minimumAmount: 299,
-  },
-} satisfies Record<string, { type: CouponType; value: number; minimumAmount: number }>;
+const ADMIN_STATUS_UPDATES: OrderStatus[] = [
+  OrderStatus.CONFIRMED,
+  OrderStatus.PREPARING,
+  OrderStatus.READY_FOR_PICKUP,
+  OrderStatus.OTP_VERIFICATION_PENDING,
+  OrderStatus.COMPLETED,
+  OrderStatus.CANCELLED,
+];
 
 @Injectable()
 export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly couponsService: CouponsService,
     private readonly paymentsService: PaymentsService,
     private readonly otpService: OtpService,
   ) {}
 
-  async createCheckoutOrder(dto: CreateCheckoutOrderDto) {
+  async createCheckoutOrder(
+    dto: CreateCheckoutOrderDto,
+    customerEmail?: string,
+    syncSecret?: string,
+  ) {
     const paymentVerification = this.paymentsService.verifyRazorpayPayment({
       razorpayOrderId: dto.payment.razorpayOrderId,
       razorpayPaymentId: dto.payment.razorpayPaymentId,
       razorpaySignature: dto.payment.razorpaySignature,
     });
 
-    const guestUser = await this.prisma.user.upsert({
-      where: { email: 'guest@crumbstall.local' },
-      update: { lastActivity: new Date() },
-      create: {
-        email: 'guest@crumbstall.local',
-        name: 'Guest Customer',
-        lastActivity: new Date(),
-      },
-    });
+    const customer = await this.resolveCheckoutCustomer(customerEmail, syncSecret);
 
     const foodItemFilters: Prisma.FoodItemWhereInput[] = dto.items.flatMap((item) => {
       const filters: Prisma.FoodItemWhereInput[] = [];
@@ -89,7 +91,10 @@ export class OrdersService {
     });
 
     const subtotal = orderItems.reduce((sum, item) => sum + item.totalPrice, 0);
-    const { coupon, discount } = await this.resolveCoupon(dto.couponCode, subtotal);
+    const { coupon, discount } = await this.couponsService.resolveCouponForOrder(
+      dto.couponCode,
+      subtotal,
+    );
     const taxableAmount = Math.max(subtotal - discount, 0);
     const tax = Math.round(taxableAmount * 0.05);
     const total = taxableAmount + tax;
@@ -100,7 +105,7 @@ export class OrdersService {
       const createdOrder = await tx.order.create({
         data: {
           orderNumber,
-          userId: guestUser.id,
+          userId: customer.id,
           couponId: coupon?.id,
           status: OrderStatus.PLACED,
           pickupTime,
@@ -146,7 +151,7 @@ export class OrdersService {
         await tx.couponUsage.create({
           data: {
             couponId: coupon.id,
-            userId: guestUser.id,
+            userId: customer.id,
             orderId: createdOrder.id,
           },
         });
@@ -176,7 +181,51 @@ export class OrdersService {
     };
   }
 
-  async findByOrderNumber(orderNumber: string) {
+  private async resolveCheckoutCustomer(customerEmail?: string, syncSecret?: string) {
+    if (!customerEmail) {
+      throw new UnauthorizedException('Customer session is required.');
+    }
+
+    this.assertValidSyncSecret(syncSecret);
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: customerEmail },
+      select: {
+        id: true,
+        isSuspended: true,
+      },
+    });
+
+    if (!user || user.isSuspended) {
+      throw new UnauthorizedException('Customer session is invalid.');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastActivity: new Date() },
+    });
+
+    return user;
+  }
+
+  private assertValidSyncSecret(syncSecret?: string) {
+    const expectedSecret = process.env.AUTH_SYNC_SECRET;
+
+    if (!expectedSecret) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new InternalServerErrorException('AUTH_SYNC_SECRET is not configured.');
+      }
+
+      return;
+    }
+
+    if (!syncSecret || !safeEqual(syncSecret, expectedSecret)) {
+      throw new UnauthorizedException('Invalid auth sync secret.');
+    }
+  }
+
+  async findByOrderNumber(orderNumber: string, customerEmail?: string, syncSecret?: string) {
+    const customer = await this.resolveOrderReader(customerEmail, syncSecret);
     const order = await this.prisma.order.findUnique({
       where: { orderNumber },
       include: {
@@ -194,6 +243,10 @@ export class OrdersService {
     });
 
     if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (customer && order.userId !== customer.id) {
       throw new NotFoundException('Order not found');
     }
 
@@ -233,14 +286,11 @@ export class OrdersService {
     };
   }
 
-  async findRecentGuestOrders(query: ListOrdersQuery) {
+  async findRecentOrders(query: ListOrdersQuery, customerEmail?: string, syncSecret?: string) {
+    const customer = await this.resolveOrderReader(customerEmail, syncSecret);
     const where: Prisma.OrderWhereInput = {
       AND: [
-        {
-        user: {
-          email: 'guest@crumbstall.local',
-        },
-        },
+        { userId: customer.id },
         query.status ? { status: query.status } : {},
         query.search
           ? {
@@ -287,55 +337,163 @@ export class OrdersService {
     };
   }
 
-  private async resolveCoupon(couponCode: string | undefined, subtotal: number) {
-    if (!couponCode) {
-      return { coupon: null, discount: 0 };
-    }
+  async findAdminOrders(query: ListOrdersQuery) {
+    const where: Prisma.OrderWhereInput = {
+      AND: [
+        query.status ? { status: query.status } : {},
+        query.search
+          ? {
+              OR: [
+                { orderNumber: { contains: query.search, mode: 'insensitive' } },
+                { user: { email: { contains: query.search, mode: 'insensitive' } } },
+                { user: { name: { contains: query.search, mode: 'insensitive' } } },
+                { items: { some: { name: { contains: query.search, mode: 'insensitive' } } } },
+              ],
+            }
+          : {},
+      ],
+    };
 
-    const now = new Date();
-    const coupon = await this.prisma.coupon.findFirst({
-      where: {
-        code: couponCode,
-        isActive: true,
-        startsAt: { lte: now },
-        endsAt: { gte: now },
+    const [orders, total] = await this.prisma.$transaction([
+      this.prisma.order.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        include: {
+          items: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return {
+      data: orders.map((order) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        statusLabel: getOrderStatusLabel(order.status),
+        placedAt: order.placedAt?.toISOString() ?? order.createdAt.toISOString(),
+        pickupTime: order.pickupTime?.toISOString(),
+        totalAmount: order.totalAmount.toNumber(),
+        itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
+        itemPreview: order.items.slice(0, 3).map((item) => item.name),
+        customer: {
+          name: order.user.name,
+          email: order.user.email,
+        },
+      })),
+      meta: {
+        page: query.page,
+        limit: query.limit,
+        total,
+        totalPages: Math.ceil(total / query.limit),
       },
-    });
+      allowedStatusUpdates: ADMIN_STATUS_UPDATES,
+    };
+  }
 
-    if (coupon) {
-      const minimumAmount = coupon.minimumAmount.toNumber();
-
-      if (subtotal < minimumAmount) {
-        throw new BadRequestException(`Minimum order amount for ${coupon.code} is Rs ${minimumAmount}`);
-      }
-
-      if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
-        throw new BadRequestException(`${coupon.code} has reached its usage limit`);
-      }
-
-      return {
-        coupon,
-        discount: calculateCouponDiscount(coupon.type, coupon.value.toNumber(), subtotal),
-      };
-    }
-
-    const fallbackCoupon = FALLBACK_COUPONS[couponCode as keyof typeof FALLBACK_COUPONS];
-
-    if (!fallbackCoupon) {
-      throw new BadRequestException('Coupon code is invalid');
-    }
-
-    if (subtotal < fallbackCoupon.minimumAmount) {
+  async updateStatus(orderNumber: string, input: UpdateOrderStatusDto) {
+    if (!ADMIN_STATUS_UPDATES.includes(input.status)) {
       throw new BadRequestException(
-        `Minimum order amount for ${couponCode} is Rs ${fallbackCoupon.minimumAmount}`,
+        `status must be one of: ${ADMIN_STATUS_UPDATES.join(', ')}`,
       );
     }
 
+    const order = await this.prisma.order.findUnique({
+      where: { orderNumber },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: input.status,
+        completedAt: input.status === OrderStatus.COMPLETED ? new Date() : null,
+        cancelledAt: input.status === OrderStatus.CANCELLED ? new Date() : null,
+      },
+      include: {
+        items: true,
+        payments: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        coupon: {
+          select: {
+            code: true,
+          },
+        },
+      },
+    });
+
     return {
-      coupon: null,
-      discount: calculateCouponDiscount(fallbackCoupon.type, fallbackCoupon.value, subtotal),
+      id: updatedOrder.id,
+      orderNumber: updatedOrder.orderNumber,
+      status: updatedOrder.status,
+      statusLabel: getOrderStatusLabel(updatedOrder.status),
+      timeline: buildOrderTimeline(updatedOrder),
+      pickupTime: updatedOrder.pickupTime?.toISOString(),
+      placedAt: updatedOrder.placedAt?.toISOString(),
+      completedAt: updatedOrder.completedAt?.toISOString(),
+      subtotalAmount: updatedOrder.subtotalAmount.toNumber(),
+      taxAmount: updatedOrder.taxAmount.toNumber(),
+      discountAmount: updatedOrder.discountAmount.toNumber(),
+      totalAmount: updatedOrder.totalAmount.toNumber(),
+      couponCode: updatedOrder.coupon?.code ?? null,
+      payment: updatedOrder.payments[0]
+        ? {
+            status: updatedOrder.payments[0].status,
+            provider: updatedOrder.payments[0].provider,
+            paymentId: updatedOrder.payments[0].providerPaymentId,
+            amount: updatedOrder.payments[0].amount.toNumber(),
+          }
+        : null,
+      items: updatedOrder.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        note: item.note,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice.toNumber(),
+        totalPrice: item.totalPrice.toNumber(),
+      })),
     };
   }
+
+  private async resolveOrderReader(customerEmail?: string, syncSecret?: string) {
+    if (!customerEmail) {
+      throw new UnauthorizedException('Customer session is required.');
+    }
+
+    this.assertValidSyncSecret(syncSecret);
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: customerEmail },
+      select: {
+        id: true,
+        isSuspended: true,
+      },
+    });
+
+    if (!user || user.isSuspended) {
+      throw new UnauthorizedException('Customer session is invalid.');
+    }
+
+    return user;
+  }
+
 }
 
 const ORDER_TIMELINE: Array<{
@@ -410,10 +568,13 @@ function getOrderStatusLabel(status: OrderStatus) {
     .join(' ');
 }
 
-function calculateCouponDiscount(type: CouponType, value: number, subtotal: number) {
-  if (type === CouponType.PERCENTAGE) {
-    return Math.round((subtotal * value) / 100);
+function safeEqual(value: string, expected: string) {
+  const valueBuffer = Buffer.from(value);
+  const expectedBuffer = Buffer.from(expected);
+
+  if (valueBuffer.length !== expectedBuffer.length) {
+    return false;
   }
 
-  return Math.min(value, subtotal);
+  return timingSafeEqual(valueBuffer, expectedBuffer);
 }

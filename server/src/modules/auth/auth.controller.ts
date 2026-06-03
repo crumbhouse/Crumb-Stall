@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Post } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SyncGoogleUserDto } from './dto/sync-google-user.dto';
 
@@ -12,5 +12,13 @@ export class AuthController {
     @Headers('x-auth-sync-secret') syncSecret?: string,
   ) {
     return this.authService.syncGoogleUser(input, syncSecret);
+  }
+
+  @Get('session')
+  findSessionUser(
+    @Headers('x-customer-email') customerEmail?: string,
+    @Headers('x-auth-sync-secret') syncSecret?: string,
+  ) {
+    return this.authService.findSessionUser(customerEmail, syncSecret);
   }
 }

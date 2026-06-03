@@ -150,6 +150,7 @@ model CartItem {
   cartId     String
   foodItemId String
   quantity   Int      @default(1)
+  note       String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   cart       Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)

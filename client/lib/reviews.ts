@@ -19,8 +19,6 @@ export type FoodReviews = {
   data: Review[];
 };
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
-
 export async function getFoodReviews(slug: string): Promise<FoodReviews> {
   return fetchJson<FoodReviews>(`/reviews/foods/${encodeURIComponent(slug)}`, emptyReviews());
 }
@@ -34,7 +32,7 @@ export async function submitFoodReview({
   rating: number;
   comment: string;
 }) {
-  const response = await fetch(`${apiUrl}/reviews/foods/${encodeURIComponent(slug)}`, {
+  const response = await fetch(`/api/reviews/foods/${encodeURIComponent(slug)}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -63,8 +61,8 @@ function emptyReviews(): FoodReviews {
 
 async function fetchJson<T>(path: string, fallback: T): Promise<T> {
   try {
-    const response = await fetch(`${apiUrl}${path}`, {
-      next: { revalidate: 5 },
+    const response = await fetch(`${getAppUrl()}/api${path}`, {
+      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -75,4 +73,8 @@ async function fetchJson<T>(path: string, fallback: T): Promise<T> {
   } catch {
     return fallback;
   }
+}
+
+function getAppUrl() {
+  return process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 }

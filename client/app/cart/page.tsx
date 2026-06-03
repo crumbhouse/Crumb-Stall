@@ -27,9 +27,9 @@ export default function CartPage() {
   } = useCart();
   const [couponCode, setCouponCode] = useState(coupon?.code ?? "");
 
-  function handleApplyCoupon(event: FormEvent<HTMLFormElement>) {
+  async function handleApplyCoupon(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    applyCoupon(couponCode);
+    await applyCoupon(couponCode);
   }
 
   return (

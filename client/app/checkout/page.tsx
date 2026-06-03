@@ -1,23 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { CustomerNav } from "@/components/customer-nav";
 import { PICKUP_SLOTS, useCart } from "@/lib/cart";
 import { createCheckoutOrder, createRazorpayOrder, loadRazorpayCheckout } from "@/lib/payments";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, discount, tax, total, coupon, pickupSlot, setPickupSlot, clearCart } =
-    useCart();
+  const { data: session, status } = useSession();
+  const {
+    items,
+    subtotal,
+    discount,
+    tax,
+    total,
+    coupon,
+    couponError,
+    pickupSlot,
+    applyCoupon,
+    removeCoupon,
+    setPickupSlot,
+    clearCart,
+  } = useCart();
+  const [couponCode, setCouponCode] = useState(coupon?.code ?? "");
   const [pickupError, setPickupError] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
-  const canPay = items.length > 0 && Boolean(pickupSlot);
+  const isLoggedIn = status === "authenticated" && Boolean(session?.user?.email);
+  const canPay = items.length > 0 && Boolean(pickupSlot) && isLoggedIn;
+
+  async function handleApplyCoupon(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await applyCoupon(couponCode);
+  }
 
   async function handlePaymentClick() {
     if (items.length === 0) {
       router.push("/menu");
+      return;
+    }
+
+    if (!isLoggedIn) {
+      router.push("/login?callbackUrl=/checkout");
       return;
     }
 
@@ -66,6 +93,9 @@ export default function CheckoutPage() {
         name: "Crumb Stall",
         description: "Food pickup order",
         order_id: order.orderId,
+        prefill: {
+          email: session?.user?.email ?? undefined,
+        },
         handler: async (response) => {
           try {
             const createdOrder = await createCheckoutOrder({
@@ -152,18 +182,49 @@ export default function CheckoutPage() {
                 </p>
               ) : null}
             </div>
-            <div className="rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
+            <form
+              onSubmit={handleApplyCoupon}
+              className="rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm"
+            >
               <p className="font-black">Coupon</p>
               <div className="mt-4 flex gap-3">
                 <input
+                  value={couponCode}
+                  onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
                   className="min-w-0 flex-1 rounded-md border border-[#e8e8e3] px-4 py-3 font-semibold outline-none focus:border-[#e23744]"
                   placeholder="WELCOME10"
                 />
-                <button className="rounded-md bg-[#171717] px-5 py-3 font-black text-white">
+                <button
+                  type="submit"
+                  className="rounded-md bg-[#171717] px-5 py-3 font-black text-white"
+                >
                   Apply
                 </button>
               </div>
-            </div>
+              {coupon ? (
+                <div className="mt-3 rounded-md bg-[#ecfdf3] px-3 py-2 text-sm font-bold text-[#166534]">
+                  <div className="flex items-center justify-between gap-3">
+                    <span>{coupon.code} applied</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        removeCoupon();
+                        setCouponCode("");
+                      }}
+                      className="font-black"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <p className="mt-1 text-xs font-semibold">{coupon.label}</p>
+                </div>
+              ) : null}
+              {couponError ? (
+                <p className="mt-3 rounded-md bg-[#fff0f2] px-3 py-2 text-sm font-bold text-[#b91c2b]">
+                  {couponError}
+                </p>
+              ) : null}
+            </form>
           </div>
         </div>
 
@@ -220,6 +281,14 @@ export default function CheckoutPage() {
             <p className="mt-4 rounded-md bg-[#fff0f2] px-3 py-2 text-sm font-bold text-[#b91c2b]">
               {paymentError}
             </p>
+          ) : null}
+          {!isLoggedIn ? (
+            <div className="mt-4 rounded-md bg-[#fff8db] px-3 py-2 text-sm font-bold text-[#8a5a00]">
+              Login is required before payment so your order is attached to your account.
+              <Link href="/login?callbackUrl=/checkout" className="ml-2 text-[#e23744]">
+                Login
+              </Link>
+            </div>
           ) : null}
           <button
             type="button"

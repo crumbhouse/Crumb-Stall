@@ -1,4 +1,5 @@
 import { PaymentsService } from './payments.service';
+import { createHmac } from 'node:crypto';
 
 describe('PaymentsService', () => {
   const previousSecret = process.env.RAZORPAY_KEY_SECRET;
@@ -38,5 +39,41 @@ describe('PaymentsService', () => {
       mode: 'mock',
       verified: true,
     });
+  });
+
+  it('verifies live Razorpay signatures', () => {
+    process.env.RAZORPAY_KEY_SECRET = 'test_secret';
+
+    const service = new PaymentsService();
+    const signature = createHmac('sha256', 'test_secret')
+      .update('order_live_123|pay_live_123')
+      .digest('hex');
+
+    const result = service.verifyRazorpayPayment({
+      razorpayOrderId: 'order_live_123',
+      razorpayPaymentId: 'pay_live_123',
+      razorpaySignature: signature,
+    });
+
+    expect(result).toMatchObject({
+      mode: 'live',
+      verified: true,
+      orderId: 'order_live_123',
+      paymentId: 'pay_live_123',
+    });
+  });
+
+  it('rejects invalid live Razorpay signatures', () => {
+    process.env.RAZORPAY_KEY_SECRET = 'test_secret';
+
+    const service = new PaymentsService();
+
+    expect(() =>
+      service.verifyRazorpayPayment({
+        razorpayOrderId: 'order_live_123',
+        razorpayPaymentId: 'pay_live_123',
+        razorpaySignature: 'invalid_signature',
+      }),
+    ).toThrow('Razorpay payment signature verification failed');
   });
 });

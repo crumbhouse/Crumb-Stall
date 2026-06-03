@@ -1,29 +1,15 @@
-import { BadRequestException } from '@nestjs/common';
+import { IsString, MinLength } from 'class-validator';
 
-export type VerifyRazorpayPaymentDto = {
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
-};
+export class VerifyRazorpayPaymentDto {
+  @IsString()
+  @MinLength(1)
+  razorpayOrderId!: string;
 
-export function parseVerifyRazorpayPaymentDto(
-  body: Record<string, unknown>,
-): VerifyRazorpayPaymentDto {
-  const razorpayOrderId = readRequiredString(body.razorpayOrderId, 'razorpayOrderId');
-  const razorpayPaymentId = readRequiredString(body.razorpayPaymentId, 'razorpayPaymentId');
-  const razorpaySignature = readRequiredString(body.razorpaySignature, 'razorpaySignature');
+  @IsString()
+  @MinLength(1)
+  razorpayPaymentId!: string;
 
-  return {
-    razorpayOrderId,
-    razorpayPaymentId,
-    razorpaySignature,
-  };
-}
-
-function readRequiredString(value: unknown, field: string) {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new BadRequestException(`${field} is required`);
-  }
-
-  return value.trim();
+  @IsString()
+  @MinLength(1)
+  razorpaySignature!: string;
 }

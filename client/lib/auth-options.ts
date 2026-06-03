@@ -29,6 +29,28 @@ export const authOptions: AuthOptions = {
       await syncGoogleUser(user, account);
       return true;
     },
+    async jwt({ token }) {
+      if (token.email) {
+        const sessionUser = await getSessionUser(token.email);
+
+        if (sessionUser) {
+          token.id = sessionUser.id;
+          token.name = sessionUser.name;
+          token.picture = sessionUser.imageUrl;
+          token.role = sessionUser.role;
+        }
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id;
+        session.user.role = token.role;
+      }
+
+      return session;
+    },
   },
 };
 
@@ -55,5 +77,36 @@ async function syncGoogleUser(user: User, account: Account) {
     }
   } catch (error) {
     console.warn("Google user sync failed.", error);
+  }
+}
+
+async function getSessionUser(email: string) {
+  const syncSecret = process.env.AUTH_SYNC_SECRET;
+
+  try {
+    const response = await fetch(`${apiUrl}/auth/session`, {
+      headers: {
+        "x-customer-email": email,
+        ...(syncSecret ? { "x-auth-sync-secret": syncSecret } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = (await response.json()) as {
+      user?: {
+        id: string;
+        name: string | null;
+        imageUrl: string | null;
+        role: "CUSTOMER" | "ADMIN";
+      };
+    };
+
+    return payload.user ?? null;
+  } catch (error) {
+    console.warn("Session user lookup failed.", error);
+    return null;
   }
 }

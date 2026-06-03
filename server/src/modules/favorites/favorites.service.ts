@@ -2,8 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 
-const GUEST_EMAIL = 'guest@crumbstall.local';
-
 const favoriteFoodInclude = {
   foodItem: {
     include: {
@@ -24,10 +22,9 @@ type FavoriteRecord = Prisma.FavoriteGetPayload<{ include: typeof favoriteFoodIn
 export class FavoritesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAllForGuest() {
-    const user = await this.ensureGuestUser();
+  async findAllForUser(userId: string) {
     const favorites = await this.prisma.favorite.findMany({
-      where: { userId: user.id },
+      where: { userId },
       include: favoriteFoodInclude,
       orderBy: { createdAt: 'desc' },
     });
@@ -37,10 +34,9 @@ export class FavoritesService {
     };
   }
 
-  async findIdsForGuest() {
-    const user = await this.ensureGuestUser();
+  async findIdsForUser(userId: string) {
     const favorites = await this.prisma.favorite.findMany({
-      where: { userId: user.id },
+      where: { userId },
       select: {
         foodItemId: true,
         foodItem: {
@@ -57,8 +53,7 @@ export class FavoritesService {
     };
   }
 
-  async addForGuest(slug: string) {
-    const user = await this.ensureGuestUser();
+  async addForUser(slug: string, userId: string) {
     const foodItem = await this.prisma.foodItem.findUnique({
       where: { slug },
       include: {
@@ -78,14 +73,14 @@ export class FavoritesService {
 
     await this.prisma.favorite.upsert({
       where: {
-        userId_foodItemId: {
-          userId: user.id,
+          userId_foodItemId: {
+          userId,
           foodItemId: foodItem.id,
         },
       },
       update: {},
       create: {
-        userId: user.id,
+        userId,
         foodItemId: foodItem.id,
       },
     });
@@ -96,11 +91,10 @@ export class FavoritesService {
     };
   }
 
-  async removeForGuest(slug: string) {
-    const user = await this.ensureGuestUser();
+  async removeForUser(slug: string, userId: string) {
     const favorite = await this.prisma.favorite.findFirst({
       where: {
-        userId: user.id,
+        userId,
         foodItem: { slug },
       },
     });
@@ -115,18 +109,6 @@ export class FavoritesService {
       slug,
       isFavorite: false,
     };
-  }
-
-  private ensureGuestUser() {
-    return this.prisma.user.upsert({
-      where: { email: GUEST_EMAIL },
-      update: { lastActivity: new Date() },
-      create: {
-        email: GUEST_EMAIL,
-        name: 'Guest Customer',
-        lastActivity: new Date(),
-      },
-    });
   }
 }
 

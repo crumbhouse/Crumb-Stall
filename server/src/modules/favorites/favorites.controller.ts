@@ -1,27 +1,30 @@
-import { Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { AuthenticatedUserGuard } from '../../common/auth/authenticated-user.guard';
+import type { AuthenticatedRequest } from '../../common/auth/authenticated-user.guard';
 import { FavoritesService } from './favorites.service';
 
 @Controller('favorites')
+@UseGuards(AuthenticatedUserGuard)
 export class FavoritesController {
   constructor(private readonly favoritesService: FavoritesService) {}
 
   @Get()
-  findAll() {
-    return this.favoritesService.findAllForGuest();
+  findAll(@Req() request: AuthenticatedRequest) {
+    return this.favoritesService.findAllForUser(request.user!.id);
   }
 
   @Get('ids')
-  findIds() {
-    return this.favoritesService.findIdsForGuest();
+  findIds(@Req() request: AuthenticatedRequest) {
+    return this.favoritesService.findIdsForUser(request.user!.id);
   }
 
   @Post(':slug')
-  add(@Param('slug') slug: string) {
-    return this.favoritesService.addForGuest(slug);
+  add(@Param('slug') slug: string, @Req() request: AuthenticatedRequest) {
+    return this.favoritesService.addForUser(slug, request.user!.id);
   }
 
   @Delete(':slug')
-  remove(@Param('slug') slug: string) {
-    return this.favoritesService.removeForGuest(slug);
+  remove(@Param('slug') slug: string, @Req() request: AuthenticatedRequest) {
+    return this.favoritesService.removeForUser(slug, request.user!.id);
   }
 }

@@ -1,9 +1,15 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { OrderStatus, Prisma } from '@prisma/client';
+import { timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
 import { ReviewInput } from './dto/review-input.dto';
 
-const GUEST_EMAIL = 'guest@crumbstall.local';
 const PURCHASED_STATUSES = [
   OrderStatus.PAID,
   OrderStatus.PLACED,
@@ -29,9 +35,9 @@ type ReviewRecord = Prisma.ReviewGetPayload<{ include: typeof reviewInclude }>;
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findForFood(slug: string) {
+  async findForFood(slug: string, customerEmail?: string, syncSecret?: string) {
     const [user, foodItem] = await Promise.all([
-      this.ensureGuestUser(),
+      this.resolveOptionalUser(customerEmail, syncSecret),
       this.prisma.foodItem.findUnique({
         where: { slug },
         select: {
@@ -57,16 +63,18 @@ export class ReviewsService {
         orderBy: { createdAt: 'desc' },
         take: 20,
       }),
-      this.hasPurchasedFood(user.id, foodItem.id),
-      this.prisma.review.findUnique({
-        where: {
-          userId_foodItemId: {
-            userId: user.id,
-            foodItemId: foodItem.id,
-          },
-        },
-        include: reviewInclude,
-      }),
+      user ? this.hasPurchasedFood(user.id, foodItem.id) : false,
+      user
+        ? this.prisma.review.findUnique({
+            where: {
+              userId_foodItemId: {
+                userId: user.id,
+                foodItemId: foodItem.id,
+              },
+            },
+            include: reviewInclude,
+          })
+        : null,
     ]);
 
     return {
@@ -80,20 +88,18 @@ export class ReviewsService {
     };
   }
 
-  async upsertForFood(slug: string, input: ReviewInput) {
-    const [user, foodItem] = await Promise.all([
-      this.ensureGuestUser(),
+  async upsertForFood(slug: string, input: ReviewInput, userId: string) {
+    const foodItem = await
       this.prisma.foodItem.findUnique({
         where: { slug },
         select: { id: true },
-      }),
-    ]);
+      });
 
     if (!foodItem) {
       throw new NotFoundException('Food item not found');
     }
 
-    const hasPurchased = await this.hasPurchasedFood(user.id, foodItem.id);
+    const hasPurchased = await this.hasPurchasedFood(userId, foodItem.id);
 
     if (!hasPurchased) {
       throw new ForbiddenException('Only purchased items can be reviewed');
@@ -102,8 +108,8 @@ export class ReviewsService {
     await this.prisma.$transaction(async (tx) => {
       await tx.review.upsert({
         where: {
-          userId_foodItemId: {
-            userId: user.id,
+            userId_foodItemId: {
+            userId,
             foodItemId: foodItem.id,
           },
         },
@@ -113,7 +119,7 @@ export class ReviewsService {
           isHidden: false,
         },
         create: {
-          userId: user.id,
+          userId,
           foodItemId: foodItem.id,
           rating: input.rating,
           comment: input.comment,
@@ -138,7 +144,7 @@ export class ReviewsService {
       });
     });
 
-    return this.findForFood(slug);
+    return this.findForFoodByUserId(slug, userId);
   }
 
   private hasPurchasedFood(userId: string, foodItemId: string) {
@@ -156,17 +162,63 @@ export class ReviewsService {
       .then(Boolean);
   }
 
-  private ensureGuestUser() {
-    return this.prisma.user.upsert({
-      where: { email: GUEST_EMAIL },
-      update: { lastActivity: new Date() },
-      create: {
-        email: GUEST_EMAIL,
-        name: 'Guest Customer',
-        lastActivity: new Date(),
+  private async findForFoodByUserId(slug: string, userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+
+    return this.findForFood(slug, user?.email, process.env.AUTH_SYNC_SECRET);
+  }
+
+  private async resolveOptionalUser(customerEmail?: string, syncSecret?: string) {
+    if (!customerEmail) {
+      return null;
+    }
+
+    this.assertValidSyncSecret(syncSecret);
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: customerEmail },
+      select: {
+        id: true,
+        isSuspended: true,
       },
     });
+
+    if (!user || user.isSuspended) {
+      throw new UnauthorizedException('Customer session is invalid.');
+    }
+
+    return user;
   }
+
+  private assertValidSyncSecret(syncSecret?: string) {
+    const expectedSecret = process.env.AUTH_SYNC_SECRET;
+
+    if (!expectedSecret) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new InternalServerErrorException('AUTH_SYNC_SECRET is not configured.');
+      }
+
+      return;
+    }
+
+    if (!syncSecret || !safeEqual(syncSecret, expectedSecret)) {
+      throw new UnauthorizedException('Invalid auth sync secret.');
+    }
+  }
+}
+
+function safeEqual(value: string, expected: string) {
+  const valueBuffer = Buffer.from(value);
+  const expectedBuffer = Buffer.from(expected);
+
+  if (valueBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(valueBuffer, expectedBuffer);
 }
 
 function serializeReview(review: ReviewRecord) {

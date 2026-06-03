@@ -1,6 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { parseCreateRazorpayOrderDto } from './dto/create-razorpay-order.dto';
-import { parseVerifyRazorpayPaymentDto } from './dto/verify-razorpay-payment.dto';
+import { CreateRazorpayOrderDto } from './dto/create-razorpay-order.dto';
+import { VerifyRazorpayPaymentDto } from './dto/verify-razorpay-payment.dto';
 import { PaymentsService } from './payments.service';
 
 @Controller('payments')
@@ -8,12 +8,12 @@ export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Post('razorpay/orders')
-  createRazorpayOrder(@Body() body: Record<string, unknown>) {
-    return this.paymentsService.createRazorpayOrder(parseCreateRazorpayOrderDto(body));
+  createRazorpayOrder(@Body() body: CreateRazorpayOrderDto) {
+    return this.paymentsService.createRazorpayOrder(body);
   }
 
   @Post('razorpay/verify')
-  verifyRazorpayPayment(@Body() body: Record<string, unknown>) {
-    return this.paymentsService.verifyRazorpayPayment(parseVerifyRazorpayPaymentDto(body));
+  verifyRazorpayPayment(@Body() body: VerifyRazorpayPaymentDto) {
+    return this.paymentsService.verifyRazorpayPayment(body);
   }
 }

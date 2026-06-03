@@ -1,6 +1,11 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+import { AuthenticatedUserGuard } from '../../common/auth/authenticated-user.guard';
+import { Roles } from '../../common/auth/roles.decorator';
+import { RolesGuard } from '../../common/auth/roles.guard';
 import { parseCreateCheckoutOrderDto } from './dto/create-checkout-order.dto';
 import { parseListOrdersQuery } from './dto/list-orders-query.dto';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrdersService } from './orders.service';
 
 @Controller('orders')
@@ -8,17 +13,54 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Get()
-  findRecentGuestOrders(@Query() query: Record<string, unknown>) {
-    return this.ordersService.findRecentGuestOrders(parseListOrdersQuery(query));
+  findRecentOrders(
+    @Query() query: Record<string, unknown>,
+    @Headers('x-customer-email') customerEmail?: string,
+    @Headers('x-auth-sync-secret') syncSecret?: string,
+  ) {
+    return this.ordersService.findRecentOrders(
+      parseListOrdersQuery(query),
+      customerEmail,
+      syncSecret,
+    );
   }
 
   @Post('checkout')
-  createCheckoutOrder(@Body() body: Record<string, unknown>) {
-    return this.ordersService.createCheckoutOrder(parseCreateCheckoutOrderDto(body));
+  createCheckoutOrder(
+    @Body() body: Record<string, unknown>,
+    @Headers('x-customer-email') customerEmail?: string,
+    @Headers('x-auth-sync-secret') syncSecret?: string,
+  ) {
+    return this.ordersService.createCheckoutOrder(
+      parseCreateCheckoutOrderDto(body),
+      customerEmail,
+      syncSecret,
+    );
+  }
+
+  @Get('admin')
+  @UseGuards(AuthenticatedUserGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  findAdminOrders(@Query() query: Record<string, unknown>) {
+    return this.ordersService.findAdminOrders(parseListOrdersQuery(query));
+  }
+
+  @Patch(':orderNumber/status')
+  @UseGuards(AuthenticatedUserGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  updateStatus(
+    @Param('orderNumber') orderNumber: string,
+    @Body() body: UpdateOrderStatusDto,
+  ) {
+    return this.ordersService.updateStatus(orderNumber, body);
   }
 
   @Get(':orderNumber')
-  findByOrderNumber(@Param('orderNumber') orderNumber: string) {
-    return this.ordersService.findByOrderNumber(orderNumber);
+  findByOrderNumber(
+    @Param('orderNumber') orderNumber: string,
+    @Headers('x-customer-email') customerEmail?: string,
+    @Headers('x-auth-sync-secret') syncSecret?: string,
+  ) {
+    return this.ordersService.findByOrderNumber(orderNumber, customerEmail, syncSecret);
   }
 }

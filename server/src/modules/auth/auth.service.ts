@@ -52,6 +52,32 @@ export class AuthService {
     return { user };
   }
 
+  async findSessionUser(email: string | undefined, syncSecret?: string) {
+    this.assertValidSyncSecret(syncSecret);
+
+    if (!email) {
+      throw new UnauthorizedException('Customer session is required.');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        imageUrl: true,
+        role: true,
+        isSuspended: true,
+      },
+    });
+
+    if (!user || user.isSuspended) {
+      throw new UnauthorizedException('Customer session is invalid.');
+    }
+
+    return { user };
+  }
+
   private assertValidSyncSecret(syncSecret?: string) {
     const expectedSecret = process.env.AUTH_SYNC_SECRET;
 

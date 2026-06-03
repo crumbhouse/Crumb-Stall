@@ -61,19 +61,27 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add validation pipe and DTO validation strategy.
 - [x] Add Google OAuth/Auth.js integration.
 - [x] Add user session/JWT flow.
+- [x] Connect cart to backend cart APIs after auth exists.
+- [x] Add cart APIs.
+- [x] Add RBAC guards for admin routes.
+- [x] Add coupon validation APIs.
+- [x] Add checkout/order creation APIs.
+- [x] Add Razorpay payment create/verify APIs.
+- [x] Add order status update APIs.
+- [x] Add OTP generation, hashing, expiry, attempts, and verification APIs.
 - [x] Verify client lint and build.
 - [x] Verify server tests and build after backend foundation work.
 
 ## Next Task
 
-- [ ] Connect cart to backend cart APIs after auth exists.
+- [ ] Add notifications APIs.
 
 ## Customer Flow
 
 - [x] Make menu search/filter UI fully interactive.
 - [x] Add item customization notes if needed, such as “less spicy” or “no onion”.
 - [x] Add cart coupon input and validation UI.
-- [ ] Connect cart to backend cart APIs after auth exists.
+- [x] Connect cart to backend cart APIs after auth exists.
 - [x] Add checkout pickup-time validation.
 - [x] Integrate Razorpay order creation and payment verification.
 - [x] Create real order after successful payment.
@@ -91,13 +99,13 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add validation pipe and DTO validation strategy.
 - [x] Add Google OAuth/Auth.js integration.
 - [x] Add user session/JWT flow.
-- [ ] Add RBAC guards for admin routes.
-- [ ] Add cart APIs.
-- [ ] Add coupon validation APIs.
-- [ ] Add checkout/order creation APIs.
-- [ ] Add Razorpay payment create/verify APIs.
-- [ ] Add order status update APIs.
-- [ ] Add OTP generation, hashing, expiry, attempts, and verification APIs.
+- [x] Add RBAC guards for admin routes.
+- [x] Add cart APIs.
+- [x] Add coupon validation APIs.
+- [x] Add checkout/order creation APIs.
+- [x] Add Razorpay payment create/verify APIs.
+- [x] Add order status update APIs.
+- [x] Add OTP generation, hashing, expiry, attempts, and verification APIs.
 - [x] Add invoice generation service.
 - [x] Add review APIs.
 - [x] Add favorites APIs.

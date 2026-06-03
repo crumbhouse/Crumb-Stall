@@ -63,8 +63,6 @@ export type OrderHistoryResponse = {
   };
 };
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
-
 export async function getRecentOrders({
   page = 1,
   status,
@@ -88,8 +86,8 @@ export async function getRecentOrders({
   }
 
   try {
-    const response = await fetch(`${apiUrl}/orders?${params.toString()}`, {
-      next: { revalidate: 5 },
+    const response = await fetch(`${getAppUrl()}/api/orders?${params.toString()}`, {
+      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -138,8 +136,8 @@ function emptyOrderHistory(page: number): OrderHistoryResponse {
 
 export async function getOrderDetail(orderNumber: string): Promise<OrderDetail | null> {
   try {
-    const response = await fetch(`${apiUrl}/orders/${orderNumber}`, {
-      next: { revalidate: 5 },
+    const response = await fetch(`${getAppUrl()}/api/orders/${encodeURIComponent(orderNumber)}`, {
+      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -150,4 +148,8 @@ export async function getOrderDetail(orderNumber: string): Promise<OrderDetail |
   } catch {
     return null;
   }
+}
+
+function getAppUrl() {
+  return process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 }

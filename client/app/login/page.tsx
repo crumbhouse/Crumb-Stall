@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { GoogleLoginButton } from "@/components/google-login-button";
 
 export default function LoginPage() {
@@ -11,9 +10,6 @@ export default function LoginPage() {
           Use Google to keep favorites, cart, orders, and invoices tied to your account.
         </p>
         <GoogleLoginButton />
-        <Link href="/menu" className="mt-3 flex justify-center rounded-full bg-orange-600 px-5 py-3 font-black text-white">
-          Continue as guest
-        </Link>
       </section>
     </main>
   );

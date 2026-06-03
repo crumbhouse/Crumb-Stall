@@ -77,10 +77,19 @@ Last updated: 2026-06-03
 - Added global Nest validation pipe with whitelist, transform, and unknown-field rejection.
 - Added Google OAuth/Auth.js integration on the client.
 - Added Auth.js JWT session handling and a backend Google profile sync endpoint.
+- Added authenticated backend cart APIs with item quantity and note persistence.
+- Connected signed-in customer carts to backend sync while unauthenticated browsing carts remain local-only.
+- Added reusable backend RBAC guards for authenticated users and role-based admin access.
+- Protected the Next.js admin shell so only `ADMIN` users can open admin pages.
+- Added backend coupon validation APIs and connected cart/checkout coupon validation to them.
+- Added session-aware checkout order creation through a Next.js proxy, so every persisted order belongs to a real signed-in user.
+- Hardened Razorpay create/verify APIs with class-based validation and live signature verification tests.
+- Added admin-protected order status update APIs and connected the admin orders page to real order data/status controls.
+- Added admin-protected OTP generation and verification APIs with hashed storage, expiry, attempt limits, and order completion on successful verification.
 
 ## Current Next Task
 
-- Connect cart to backend cart APIs after auth exists.
+- Add notifications APIs.
 
 ## Local Setup Steps For You
 
@@ -183,9 +192,9 @@ Last updated: 2026-06-03
 ## Known Notes And Caveats
 
 - The root `README.md` mentions a root `.env.example`, but this repo currently has `server/.env.example` and `client/.env.example`.
-- Cart data is still client-local until backend cart APIs are implemented and connected to the authenticated session.
-- Favorites are persisted for the guest customer until auth/session ownership is implemented.
-- Reviews are restricted to items found in the guest customer's paid/placed-or-later order history until auth/session ownership is implemented.
+- Unauthenticated cart data remains client-local and is not represented by a database user.
+- Favorites require login and are persisted against the signed-in user.
+- Reviews require login for submission and are restricted to items found in the signed-in user's paid/placed-or-later order history.
 - Validation strategy: new request DTOs should use class-based DTOs with `class-validator` decorators. Existing manual parser DTOs remain valid for current endpoints and can be migrated feature-by-feature when those APIs are expanded.
 - Invoice PDF download is implemented as a generated backend PDF response. Cloud storage for persisted invoice PDFs is still a later infrastructure task.
 - Redis is optional for now and only needed once caching, queues, or rate limiting are wired.

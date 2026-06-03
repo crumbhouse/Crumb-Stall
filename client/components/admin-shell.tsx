@@ -1,5 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
 import type { ReactNode } from "react";
+import { authOptions } from "@/lib/auth-options";
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
 
 const links = [
   { href: "/admin", label: "Dashboard" },
@@ -9,7 +14,19 @@ const links = [
   { href: "/admin/analytics", label: "Analytics" },
 ];
 
-export function AdminShell({ children }: { children: ReactNode }) {
+export async function AdminShell({ children }: { children: ReactNode }) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.email) {
+    redirect("/login?callbackUrl=/admin");
+  }
+
+  const hasAdminAccess = await verifyAdminAccess(session.user.email);
+
+  if (!hasAdminAccess) {
+    redirect("/menu");
+  }
+
   return (
     <main className="min-h-screen bg-stone-100 text-stone-950">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-stone-200 bg-white p-5 lg:block">
@@ -39,4 +56,22 @@ export function AdminShell({ children }: { children: ReactNode }) {
       </section>
     </main>
   );
+}
+
+async function verifyAdminAccess(email: string) {
+  try {
+    const response = await fetch(`${apiUrl}/admin/me`, {
+      headers: {
+        "x-customer-email": email,
+        ...(process.env.AUTH_SYNC_SECRET
+          ? { "x-auth-sync-secret": process.env.AUTH_SYNC_SECRET }
+          : {}),
+      },
+      cache: "no-store",
+    });
+
+    return response.ok;
+  } catch {
+    return false;
+  }
 }

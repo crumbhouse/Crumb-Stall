@@ -9,7 +9,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useSession } from "next-auth/react";
+import { getBackendCart, replaceBackendCart } from "@/lib/backend-cart";
 import type { FoodItem } from "@/lib/catalog";
+import { validateCoupon } from "@/lib/coupons";
 
 type CartItem = {
   item: FoodItem;
@@ -47,7 +50,7 @@ type CartContextValue = {
   increaseItem: (itemId: string) => void;
   decreaseItem: (itemId: string) => void;
   updateItemNote: (itemId: string, note: string) => void;
-  applyCoupon: (code: string) => void;
+  applyCoupon: (code: string) => Promise<void>;
   removeCoupon: () => void;
   setPickupSlot: (slot: PickupSlot | null) => void;
   clearCart: () => void;
@@ -80,31 +83,19 @@ export const PICKUP_SLOTS: PickupSlot[] = [
   },
 ];
 
-const COUPONS: Coupon[] = [
-  {
-    code: "WELCOME10",
-    label: "10% off on orders above Rs 99",
-    type: "percentage",
-    value: 10,
-    minimumAmount: 99,
-  },
-  {
-    code: "SAVE50",
-    label: "Rs 50 off on orders above Rs 299",
-    type: "fixed",
-    value: 50,
-    minimumAmount: 299,
-  },
-];
-
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { data: session, status } = useSession();
   const [items, setItems] = useState<CartItem[]>([]);
   const [coupon, setCoupon] = useState<Coupon | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [pickupSlot, setPickupSlot] = useState<PickupSlot | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [syncedCartEmail, setSyncedCartEmail] = useState<string | null>(null);
+  const sessionEmail = session?.user?.email;
+  const isAuthenticated = status === "authenticated" && Boolean(sessionEmail);
+  const hasSyncedBackendCart = isAuthenticated && syncedCartEmail === sessionEmail;
 
   useEffect(() => {
     try {
@@ -129,8 +120,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const savedCoupon = window.localStorage.getItem(COUPON_STORAGE_KEY);
       if (savedCoupon) {
         const parsedCoupon = JSON.parse(savedCoupon) as Coupon;
-        const matchingCoupon = COUPONS.find((couponRule) => couponRule.code === parsedCoupon.code);
-        setCoupon(matchingCoupon ?? null);
+        setCoupon(parsedCoupon);
       }
 
       const savedPickupSlot = window.localStorage.getItem(PICKUP_STORAGE_KEY);
@@ -145,10 +135,65 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!isReady || !isAuthenticated || hasSyncedBackendCart) {
+      return;
+    }
+
+    let isActive = true;
+
+    getBackendCart()
+      .then((backendCart) => {
+        if (!isActive) {
+          return;
+        }
+
+        setItems((currentItems) => {
+          if (backendCart.items.length > 0) {
+            return backendCart.items;
+          }
+
+          if (currentItems.length > 0) {
+            void replaceBackendCart(currentItems).catch((error) => {
+              console.warn("Cart sync failed.", error);
+            });
+          }
+
+          return currentItems;
+        });
+      })
+      .catch((error) => {
+        console.warn("Cart sync failed.", error);
+      })
+      .finally(() => {
+        if (isActive && sessionEmail) {
+          setSyncedCartEmail(sessionEmail);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [hasSyncedBackendCart, isAuthenticated, isReady, sessionEmail]);
+
+  useEffect(() => {
     if (isReady) {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     }
   }, [isReady, items]);
+
+  useEffect(() => {
+    if (!isReady || !isAuthenticated || !hasSyncedBackendCart) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void replaceBackendCart(items).catch((error) => {
+        console.warn("Cart sync failed.", error);
+      });
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [hasSyncedBackendCart, isAuthenticated, isReady, items]);
 
   useEffect(() => {
     if (!isReady) {
@@ -252,24 +297,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const taxableAmount = Math.max(subtotal - discount, 0);
     const tax = Math.round(taxableAmount * TAX_RATE);
 
-    const applyCoupon = (code: string) => {
+    const applyCoupon = async (code: string) => {
       const normalizedCode = code.trim().toUpperCase();
-      const matchingCoupon = COUPONS.find((couponRule) => couponRule.code === normalizedCode);
 
-      if (!matchingCoupon) {
+      if (!normalizedCode) {
         setCoupon(null);
-        setCouponError("Coupon code is invalid.");
+        setCouponError("Enter a coupon code.");
         return;
       }
 
-      if (subtotal < matchingCoupon.minimumAmount) {
+      try {
+        const validatedCoupon = await validateCoupon(normalizedCode, subtotal);
+        setCoupon(validatedCoupon);
+        setCouponError(null);
+      } catch (error) {
         setCoupon(null);
-        setCouponError(`Add Rs ${matchingCoupon.minimumAmount - subtotal} more to use ${matchingCoupon.code}.`);
-        return;
+        setCouponError(error instanceof Error ? error.message : "Coupon validation failed.");
       }
-
-      setCoupon(matchingCoupon);
-      setCouponError(null);
     };
 
     return {
