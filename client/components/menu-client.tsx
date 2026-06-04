@@ -1,16 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSession } from "next-auth/react";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { CartSummaryBar } from "@/components/cart-summary-bar";
 import { CustomerNav } from "@/components/customer-nav";
 import { FoodCard } from "@/components/food-card";
 import { MobileBar } from "@/components/mobile-bar";
 import { getFoodImageUrl, type Category, type FoodItem } from "@/lib/catalog";
-import { useCart } from "@/lib/cart";
 import { getFavoriteIds } from "@/lib/favorites";
-import { consumePendingCartItem } from "@/lib/pending-cart-item";
 import type { RecommendedFoodItem } from "@/lib/recommendations";
 
 type ActiveFilter = "all" | "recommended" | "combos" | "under-100" | "top-rated" | "veg";
@@ -25,8 +22,6 @@ const quickFilters: Array<{ id: ActiveFilter; label: string }> = [
 ];
 
 export function MenuClient({ categories, foods }: { categories: Category[]; foods: FoodItem[] }) {
-  const { status } = useSession();
-  const { addItem } = useCart();
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
@@ -97,18 +92,6 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
   }, []);
 
   useEffect(() => {
-    if (status !== "authenticated") {
-      return;
-    }
-
-    const pendingItem = consumePendingCartItem();
-
-    if (pendingItem) {
-      addItem(pendingItem);
-    }
-  }, [addItem, status]);
-
-  useEffect(() => {
     let isMounted = true;
 
     fetch("/api/recommendations/foods?limit=4", {
@@ -148,6 +131,10 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
     setQuery("");
     setActiveCategory("all");
     setActiveFilter("all");
+  }
+
+  function scrollToResults() {
+    document.getElementById("all-items")?.scrollIntoView({ block: "start" });
   }
 
   function handleFavoriteChange(slug: string, isFavorite: boolean) {
@@ -192,8 +179,11 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
             </div>
 
             <form
-              className="mt-6 flex max-w-3xl gap-3 rounded-lg border border-[#e8e8e3] bg-[#f9f9f7] p-2"
-              onSubmit={(event) => event.preventDefault()}
+              className="mt-6 flex max-w-3xl gap-2 rounded-lg border border-[#e8e8e3] bg-[#f9f9f7] p-2 sm:gap-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                scrollToResults();
+              }}
             >
               <label htmlFor="menu-search" className="sr-only">
                 Search menu
@@ -209,11 +199,17 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
                 <button
                   type="button"
                   onClick={() => setQuery("")}
-                  className="rounded-md border border-[#e8e8e3] bg-white px-4 py-3 text-sm font-black text-[#555]"
+                  className="rounded-md border border-[#e8e8e3] bg-white px-3 py-3 text-sm font-black text-[#555] sm:px-4"
                 >
                   Clear
                 </button>
               ) : null}
+              <button
+                type="submit"
+                className="rounded-md bg-[#171717] px-3 py-3 text-sm font-black text-white sm:px-5"
+              >
+                Search
+              </button>
             </form>
 
             <div className="mt-5 flex gap-2 overflow-x-auto pb-2">
@@ -238,7 +234,11 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
             </div>
           </div>
 
-          <aside className="overflow-hidden rounded-lg bg-[#171717] text-white shadow-[0_18px_50px_rgba(20,20,20,0.18)]">
+          <aside
+            className={`overflow-hidden rounded-lg bg-[#171717] text-white shadow-[0_18px_50px_rgba(20,20,20,0.18)] ${
+              hasActiveFilters ? "hidden lg:block" : ""
+            }`}
+          >
             {comboImageUrl ? (
               <div className="h-36 bg-cover bg-center" style={{ backgroundImage: `url(${comboImageUrl})` }} />
             ) : null}
@@ -272,6 +272,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
         </div>
       </section>
 
+      {!hasActiveFilters ? (
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -291,11 +292,11 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
           ) : null}
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <button
             type="button"
             onClick={() => setActiveCategory("all")}
-            className={`rounded-lg border p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${
+            className={`h-full rounded-lg border p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${
               activeCategory === "all"
                 ? "border-[#e23744] bg-[#fff0f2]"
                 : "border-[#e8e8e3] bg-white hover:border-[#e23744]"
@@ -320,7 +321,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
                 key={category.id}
                 type="button"
                 onClick={() => setActiveCategory(category.slug)}
-                className={`rounded-lg border p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${
+                className={`h-full rounded-lg border p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${
                   isActive
                     ? "border-[#e23744] bg-[#fff0f2]"
                     : "border-[#e8e8e3] bg-white hover:border-[#e23744]"
@@ -340,6 +341,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
           })}
         </div>
       </section>
+      ) : null}
 
       {!hasActiveFilters ? (
         <section className="mx-auto max-w-7xl px-4 pb-2 sm:px-6 lg:px-8">
@@ -356,13 +358,17 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
               See full menu
             </a>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {recommendationItems.map((item) => (
-              <div key={item.id} className="space-y-2">
-                {hasRecommendationReason(item) ? (
-                  <p className="rounded-md bg-white px-3 py-2 text-xs font-black text-[#b91c2b] shadow-sm">
-                    {item.recommendationReason}
-                  </p>
+              <div key={item.id} className="flex h-full flex-col gap-2">
+                {recommendationsPersonalized ? (
+                  hasRecommendationReason(item) ? (
+                    <p className="flex min-h-11 items-center rounded-md bg-white px-3 py-2 text-xs font-black text-[#b91c2b] shadow-sm">
+                      {item.recommendationReason}
+                    </p>
+                  ) : (
+                    <div className="min-h-11" aria-hidden="true" />
+                  )
                 ) : null}
                 <FoodCard
                   item={item}
@@ -404,7 +410,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
             </button>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredFoods.map((item) => (
               <FoodCard
                 key={item.id}

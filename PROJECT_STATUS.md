@@ -64,6 +64,11 @@ Last updated: 2026-06-04
 ### Payments, Orders, OTP, And Invoices
 
 - Integrated Razorpay order creation and payment verification.
+- Hardened checkout so the backend creates a `PENDING_PAYMENT` order before Razorpay checkout starts.
+- Added checkout attempt idempotency, unique Razorpay order/payment identifiers, captured-payment verification before order placement, and captured-payment recovery for page reloads during payment confirmation.
+- Added a Razorpay webhook endpoint with raw-body signature verification and duplicate event tracking.
+- Removed customer-side usage of arbitrary amount-based Razorpay order creation; checkout now uses server-owned start/confirm/recover routes.
+- Removed the exposed legacy checkout proxy/route so order placement cannot skip the pending-order payment contract.
 - Added real order creation after successful payment.
 - Added backend order history.
 - Added real order tracking statuses.
@@ -84,6 +89,7 @@ Last updated: 2026-06-04
 - Added backend coupon validation APIs and connected cart/checkout coupon validation to them.
 - Added session-aware checkout order creation through a Next.js proxy, so every persisted order belongs to a real signed-in user.
 - Hardened Razorpay create/verify APIs with class-based validation and live signature verification tests.
+- Added webhook signature and raw payload parsing tests for the Razorpay service.
 - Added admin-protected order status update APIs and connected the admin orders page to real order data/status controls.
 - Added admin-protected OTP generation and verification APIs with hashed storage, expiry, attempt limits, and order completion on successful verification.
 - Added authenticated notifications APIs, Next.js proxies, and notification creation hooks for order, status, OTP, and completion events.
@@ -130,6 +136,8 @@ Last updated: 2026-06-04
    npm run db:migrate
    npm run db:seed
    ```
+
+   The latest payment hardening migration adds checkout idempotency fields and the Razorpay webhook event ledger, so `npm run db:migrate` is required before testing real payments.
 
    The seed creates the super admin:
 
@@ -195,7 +203,11 @@ Last updated: 2026-06-04
 - For real Razorpay checkout, set:
   - `server/.env`: `RAZORPAY_KEY_ID`
   - `server/.env`: `RAZORPAY_KEY_SECRET`
-  - `client/.env.local`: `NEXT_PUBLIC_RAZORPAY_KEY_ID`
+- For Razorpay webhooks, set:
+  - `server/.env`: `RAZORPAY_WEBHOOK_SECRET`
+  - Razorpay Dashboard webhook URL: `https://YOUR_BACKEND_DOMAIN/api/v1/payments/razorpay/webhook`
+- Subscribe the webhook to captured and failed payment events, at minimum `payment.captured`, `payment.failed`, and `order.paid`.
+- The client no longer needs a Razorpay secret. Keep `RAZORPAY_KEY_SECRET` only in `server/.env`.
 
 ## Google OAuth Setup Notes
 

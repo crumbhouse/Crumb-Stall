@@ -1,12 +1,24 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { CustomerNav } from "@/components/customer-nav";
 import { PICKUP_SLOTS, useCart } from "@/lib/cart";
-import { createCheckoutOrder, createRazorpayOrder, loadRazorpayCheckout } from "@/lib/payments";
+import {
+  confirmCheckoutPayment,
+  loadRazorpayCheckout,
+  recoverCheckoutOrder,
+  startCheckoutOrder,
+} from "@/lib/payments";
+import {
+  clearCheckoutAttemptId,
+  clearPendingCheckout,
+  getOrCreateCheckoutAttemptId,
+  readPendingCheckout,
+  savePendingCheckout,
+} from "@/lib/pending-checkout";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -29,12 +41,93 @@ export default function CheckoutPage() {
   const [pickupError, setPickupError] = useState<string | null>(null);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
+  const checkedPendingCheckout = useRef(false);
   const isLoggedIn = status === "authenticated" && Boolean(session?.user?.email);
   const canPay = items.length > 0 && Boolean(pickupSlot) && isLoggedIn;
+  const checkoutPayload = useMemo(
+    () =>
+      pickupSlot
+        ? {
+            items: items.map(({ item, quantity, note }) => ({
+              foodItemId: item.id,
+              slug: item.slug,
+              quantity,
+              note,
+            })),
+            couponCode: coupon?.code,
+            pickupSlot,
+          }
+        : null,
+    [coupon?.code, items, pickupSlot],
+  );
+
+  useEffect(() => {
+    if (!isLoggedIn || isPaying || checkedPendingCheckout.current) {
+      return;
+    }
+
+    checkedPendingCheckout.current = true;
+
+    const pendingCheckout = readPendingCheckout();
+
+    if (!pendingCheckout) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsPaying(true);
+      setPaymentError("Checking for a completed payment...");
+      recoverCheckoutOrder(pendingCheckout)
+        .then((createdOrder) => {
+          clearCheckoutAttemptId();
+          clearPendingCheckout();
+          clearCart();
+          router.push(`/orders/${createdOrder.orderNumber}`);
+        })
+        .catch((error) => {
+          setPaymentError(
+            error instanceof Error
+              ? error.message
+              : "Payment recovery is still pending. Please retry recovery in a few seconds.",
+          );
+        })
+        .finally(() => setIsPaying(false));
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [clearCart, isLoggedIn, isPaying, router]);
 
   async function handleApplyCoupon(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await applyCoupon(couponCode);
+  }
+
+  async function handleRecoverPayment() {
+    const pendingCheckout = readPendingCheckout();
+
+    if (!pendingCheckout) {
+      setPaymentError("No pending checkout recovery data was found.");
+      return;
+    }
+
+    setIsPaying(true);
+    setPaymentError("Checking Razorpay for a captured payment...");
+
+    try {
+      const createdOrder = await recoverCheckoutOrder(pendingCheckout);
+      clearCheckoutAttemptId();
+      clearPendingCheckout();
+      clearCart();
+      router.push(`/orders/${createdOrder.orderNumber}`);
+    } catch (error) {
+      setPaymentError(
+        error instanceof Error
+          ? error.message
+          : "Payment recovery is still pending. Please retry in a few seconds.",
+      );
+    } finally {
+      setIsPaying(false);
+    }
   }
 
   async function handlePaymentClick() {
@@ -53,28 +146,34 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!checkoutPayload) {
+      setPaymentError("Checkout details are not ready.");
+      return;
+    }
+
     setIsPaying(true);
     setPaymentError(null);
 
     try {
-      const order = await createRazorpayOrder(total);
+      const startedOrder = await startCheckoutOrder({
+        ...checkoutPayload,
+        checkoutAttemptId: getOrCreateCheckoutAttemptId(),
+      });
 
-      if (order.mode === "mock") {
-        const createdOrder = await createCheckoutOrder({
-          items: items.map(({ item, quantity, note }) => ({
-            foodItemId: item.id,
-            slug: item.slug,
-            quantity,
-            note,
-          })),
-          couponCode: coupon?.code,
-          pickupSlot,
-          payment: {
-            razorpayOrderId: order.orderId,
-            razorpayPaymentId: `pay_mock_${Date.now()}`,
-            razorpaySignature: "mock_signature",
-          },
+      savePendingCheckout({
+        orderNumber: startedOrder.orderNumber,
+        razorpayOrderId: startedOrder.razorpay.orderId,
+      });
+
+      if (startedOrder.razorpay.mode === "mock") {
+        const createdOrder = await confirmCheckoutPayment({
+          orderNumber: startedOrder.orderNumber,
+          razorpayOrderId: startedOrder.razorpay.orderId,
+          razorpayPaymentId: `pay_mock_${Date.now()}`,
+          razorpaySignature: "mock_signature",
         });
+        clearCheckoutAttemptId();
+        clearPendingCheckout();
         clearCart();
         router.push(`/orders/${createdOrder.orderNumber}`);
         return;
@@ -87,32 +186,25 @@ export default function CheckoutPage() {
       }
 
       const razorpay = new window.Razorpay({
-        key: order.keyId,
-        amount: order.amount,
-        currency: order.currency,
+        key: startedOrder.razorpay.keyId,
+        amount: startedOrder.razorpay.amount,
+        currency: startedOrder.razorpay.currency,
         name: "Crumb Stall",
         description: "Food pickup order",
-        order_id: order.orderId,
+        order_id: startedOrder.razorpay.orderId,
         prefill: {
           email: session?.user?.email ?? undefined,
         },
         handler: async (response) => {
           try {
-            const createdOrder = await createCheckoutOrder({
-              items: items.map(({ item, quantity, note }) => ({
-                foodItemId: item.id,
-                slug: item.slug,
-                quantity,
-                note,
-              })),
-              couponCode: coupon?.code,
-              pickupSlot,
-              payment: {
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-              },
+            const createdOrder = await confirmCheckoutPayment({
+              orderNumber: startedOrder.orderNumber,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
             });
+            clearCheckoutAttemptId();
+            clearPendingCheckout();
             clearCart();
             router.push(`/orders/${createdOrder.orderNumber}`);
           } catch {
@@ -278,9 +370,17 @@ export default function CheckoutPage() {
             </div>
           </div>
           {paymentError ? (
-            <p className="mt-4 rounded-md bg-[#fff0f2] px-3 py-2 text-sm font-bold text-[#b91c2b]">
-              {paymentError}
-            </p>
+            <div className="mt-4 rounded-md bg-[#fff0f2] px-3 py-2 text-sm font-bold text-[#b91c2b]">
+              <p>{paymentError}</p>
+              <button
+                type="button"
+                onClick={handleRecoverPayment}
+                disabled={isPaying}
+                className="mt-2 rounded-md bg-white px-3 py-2 text-xs font-black text-[#b91c2b] disabled:opacity-50"
+              >
+                Retry payment recovery
+              </button>
+            </div>
           ) : null}
           {!isLoggedIn ? (
             <div className="mt-4 rounded-md bg-[#fff8db] px-3 py-2 text-sm font-bold text-[#8a5a00]">

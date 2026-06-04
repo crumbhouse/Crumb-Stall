@@ -6,7 +6,7 @@ import { setupSwagger } from './config/swagger';
 import { setupValidation } from './config/validation';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   app.setGlobalPrefix(API_PREFIX);
   const allowedOrigins = (process.env.CLIENT_ORIGIN ?? 'http://localhost:3000')
     .split(',')

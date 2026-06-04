@@ -81,6 +81,25 @@ export async function updateAdminOrderStatus(orderNumber: string, status: string
   return response.json();
 }
 
+export async function verifyAdminOrderOtp(orderNumber: string, otp: string) {
+  const response = await fetch(
+    `/api/admin/orders/${encodeURIComponent(orderNumber)}/otp/verify`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ otp }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("OTP verification failed");
+  }
+
+  return response.json();
+}
+
 function getAppUrl() {
   return process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 }

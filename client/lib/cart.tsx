@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -13,6 +14,7 @@ import { useSession } from "next-auth/react";
 import { getBackendCart, replaceBackendCart } from "@/lib/backend-cart";
 import type { FoodItem } from "@/lib/catalog";
 import { validateCoupon } from "@/lib/coupons";
+import { consumePendingCartItem } from "@/lib/pending-cart-item";
 
 type CartItem = {
   item: FoodItem;
@@ -93,6 +95,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [pickupSlot, setPickupSlot] = useState<PickupSlot | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [syncedCartEmail, setSyncedCartEmail] = useState<string | null>(null);
+  const consumedPendingCartItemRef = useRef(false);
   const sessionEmail = session?.user?.email;
   const isAuthenticated = status === "authenticated" && Boolean(sessionEmail);
   const hasSyncedBackendCart = isAuthenticated && syncedCartEmail === sessionEmail;
@@ -234,6 +237,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [...currentItems, { item, quantity: 1, note: "" }];
     });
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      consumedPendingCartItemRef.current = false;
+      return;
+    }
+
+    if (!isReady || !hasSyncedBackendCart || consumedPendingCartItemRef.current) {
+      return;
+    }
+
+    consumedPendingCartItemRef.current = true;
+    const pendingItem = consumePendingCartItem();
+
+    if (pendingItem) {
+      window.setTimeout(() => addItem(pendingItem), 0);
+    }
+  }, [addItem, hasSyncedBackendCart, isAuthenticated, isReady]);
 
   const removeItem = useCallback((itemId: string) => {
     setItems((currentItems) => currentItems.filter((cartItem) => cartItem.item.id !== itemId));

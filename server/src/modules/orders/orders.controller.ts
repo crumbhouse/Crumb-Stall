@@ -3,7 +3,11 @@ import { UserRole } from '@prisma/client';
 import { AuthenticatedUserGuard } from '../../common/auth/authenticated-user.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
-import { parseCreateCheckoutOrderDto } from './dto/create-checkout-order.dto';
+import {
+  parseConfirmCheckoutPaymentDto,
+  parseRecoverCheckoutOrderDto,
+  parseStartCheckoutOrderDto,
+} from './dto/create-checkout-order.dto';
 import { parseListOrdersQuery } from './dto/list-orders-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrdersService } from './orders.service';
@@ -25,14 +29,40 @@ export class OrdersController {
     );
   }
 
-  @Post('checkout')
-  createCheckoutOrder(
+  @Post('checkout/start')
+  startCheckoutOrder(
     @Body() body: Record<string, unknown>,
     @Headers('x-customer-email') customerEmail?: string,
     @Headers('x-auth-sync-secret') syncSecret?: string,
   ) {
-    return this.ordersService.createCheckoutOrder(
-      parseCreateCheckoutOrderDto(body),
+    return this.ordersService.startCheckoutOrder(
+      parseStartCheckoutOrderDto(body),
+      customerEmail,
+      syncSecret,
+    );
+  }
+
+  @Post('checkout/confirm')
+  confirmCheckoutPayment(
+    @Body() body: Record<string, unknown>,
+    @Headers('x-customer-email') customerEmail?: string,
+    @Headers('x-auth-sync-secret') syncSecret?: string,
+  ) {
+    return this.ordersService.confirmCheckoutPayment(
+      parseConfirmCheckoutPaymentDto(body),
+      customerEmail,
+      syncSecret,
+    );
+  }
+
+  @Post('checkout/recover')
+  recoverCheckoutOrder(
+    @Body() body: Record<string, unknown>,
+    @Headers('x-customer-email') customerEmail?: string,
+    @Headers('x-auth-sync-secret') syncSecret?: string,
+  ) {
+    return this.ordersService.recoverCheckoutOrder(
+      parseRecoverCheckoutOrderDto(body),
       customerEmail,
       syncSecret,
     );

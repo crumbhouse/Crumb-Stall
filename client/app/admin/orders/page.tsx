@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AdminOrderOtpControl } from "@/components/admin/admin-order-otp-control";
 import { AdminOrderStatusControl } from "@/components/admin/admin-order-status-control";
 import { AdminShell } from "@/components/admin-shell";
 import { getAdminOrders } from "@/lib/admin-orders-server";
@@ -98,6 +99,12 @@ export default async function AdminOrdersPage({
                 currentStatus={order.status}
                 allowedStatuses={history.allowedStatusUpdates}
               />
+              {order.status === "READY_FOR_PICKUP" ||
+              order.status === "OTP_VERIFICATION_PENDING" ? (
+                <div className="xl:col-start-4">
+                  <AdminOrderOtpControl orderNumber={order.orderNumber} />
+                </div>
+              ) : null}
             </div>
           ))
         )}

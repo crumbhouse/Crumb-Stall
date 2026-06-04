@@ -206,6 +206,7 @@ model CouponUsage {
 model Order {
   id                    String        @id @default(cuid())
   orderNumber           String        @unique
+  checkoutAttemptId     String?       @unique
   userId                String
   couponId              String?
   status                OrderStatus   @default(PENDING_PAYMENT)
@@ -255,14 +256,28 @@ model Payment {
   status             PaymentStatus   @default(CREATED)
   amount             Decimal         @db.Decimal(10, 2)
   currency           String          @default("INR")
-  providerOrderId    String?
-  providerPaymentId  String?
+  providerOrderId    String?         @unique
+  providerPaymentId  String?         @unique
   providerSignature  String?
   rawPayload         Json?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   order              Order           @relation(fields: [orderId], references: [id])
 
+}
+
+model PaymentWebhookEvent {
+  id                String          @id @default(cuid())
+  provider          PaymentProvider @default(RAZORPAY)
+  eventId           String          @unique
+  event             String
+  providerOrderId   String?
+  providerPaymentId String?
+  rawPayload        Json
+  processedAt       DateTime?
+  createdAt         DateTime        @default(now())
+
+  @@index([provider, event])
   @@index([providerOrderId])
   @@index([providerPaymentId])
 }

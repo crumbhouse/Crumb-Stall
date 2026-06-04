@@ -16,7 +16,7 @@ export function FoodCard({
   const imageUrl = getFoodImageUrl(item);
 
   return (
-    <article className="group overflow-hidden rounded-lg border border-[#e8e8e3] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(20,20,20,0.08)]">
+    <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-[#e8e8e3] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(20,20,20,0.08)]">
       <div className="relative">
         <Link href={`/food/${item.slug}`} className="block">
           <div className="aspect-[4/3] bg-[#f1f1ee]">
@@ -47,13 +47,13 @@ export function FoodCard({
           className="absolute right-3 top-3 z-10"
         />
       </div>
-      <div className="p-4">
+      <div className="flex flex-1 flex-col p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[#e23744]">
               {item.category.name}
             </p>
-            <Link href={`/food/${item.slug}`} className="mt-1 block text-lg font-black leading-6 text-[#171717]">
+            <Link href={`/food/${item.slug}`} className="mt-1 line-clamp-2 block min-h-12 text-lg font-black leading-6 text-[#171717]">
               {item.name}
             </Link>
           </div>
@@ -71,7 +71,7 @@ export function FoodCard({
           <span>{item.ratingCount} ratings</span>
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
           <div>
             <p className="text-lg font-black text-[#171717]">Rs {item.finalPrice}</p>
             {item.discountPrice ? (

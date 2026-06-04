@@ -7,20 +7,7 @@ type CreateRazorpayOrderResponse = {
   receipt: string;
 };
 
-type VerifyRazorpayPaymentPayload = {
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  razorpaySignature: string;
-};
-
-type VerifyRazorpayPaymentResponse = {
-  mode: "live" | "mock";
-  verified: boolean;
-  orderId: string;
-  paymentId: string;
-};
-
-type CheckoutOrderPayload = {
+export type StartCheckoutOrderPayload = {
   items: Array<{
     foodItemId: string;
     slug: string;
@@ -33,7 +20,7 @@ type CheckoutOrderPayload = {
     label: string;
     minutesFromNow: number;
   };
-  payment: VerifyRazorpayPaymentPayload;
+  checkoutAttemptId?: string;
 };
 
 type CheckoutOrderResponse = {
@@ -48,33 +35,17 @@ type CheckoutOrderResponse = {
   paymentId?: string;
 };
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
+type StartCheckoutOrderResponse = CheckoutOrderResponse & {
+  razorpay: CreateRazorpayOrderResponse;
+};
 
-export async function createRazorpayOrder(amount: number) {
-  const response = await fetch(`${apiUrl}/payments/razorpay/orders`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      amount,
-      currency: "INR",
-      receipt: `CS-${Date.now()}`,
-      notes: {
-        source: "crumbstall-web",
-      },
-    }),
-  });
+export type RecoverCheckoutOrderPayload = {
+  orderNumber: string;
+  razorpayOrderId: string;
+};
 
-  if (!response.ok) {
-    throw new Error("Could not create Razorpay order");
-  }
-
-  return (await response.json()) as CreateRazorpayOrderResponse;
-}
-
-export async function verifyRazorpayPayment(payload: VerifyRazorpayPaymentPayload) {
-  const response = await fetch(`${apiUrl}/payments/razorpay/verify`, {
+export async function startCheckoutOrder(payload: StartCheckoutOrderPayload) {
+  const response = await fetch("/api/checkout/start", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -83,14 +54,20 @@ export async function verifyRazorpayPayment(payload: VerifyRazorpayPaymentPayloa
   });
 
   if (!response.ok) {
-    throw new Error("Payment verification failed");
+    const errorPayload = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(errorPayload?.message ?? "Could not start checkout");
   }
 
-  return (await response.json()) as VerifyRazorpayPaymentResponse;
+  return (await response.json()) as StartCheckoutOrderResponse;
 }
 
-export async function createCheckoutOrder(payload: CheckoutOrderPayload) {
-  const response = await fetch("/api/checkout/orders", {
+export async function confirmCheckoutPayment(payload: {
+  orderNumber: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}) {
+  const response = await fetch("/api/checkout/confirm", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -99,7 +76,25 @@ export async function createCheckoutOrder(payload: CheckoutOrderPayload) {
   });
 
   if (!response.ok) {
-    throw new Error("Could not create order after payment");
+    const errorPayload = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(errorPayload?.message ?? "Payment verification failed");
+  }
+
+  return (await response.json()) as CheckoutOrderResponse;
+}
+
+export async function recoverCheckoutOrder(payload: RecoverCheckoutOrderPayload) {
+  const response = await fetch("/api/checkout/recover", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorPayload = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(errorPayload?.message ?? "Could not recover paid order");
   }
 
   return (await response.json()) as CheckoutOrderResponse;

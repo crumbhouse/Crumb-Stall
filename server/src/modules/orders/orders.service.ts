@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -12,7 +13,11 @@ import { CouponsService } from '../coupons/coupons.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { OtpService } from '../otp/otp.service';
 import { PaymentsService } from '../payments/payments.service';
-import { CreateCheckoutOrderDto } from './dto/create-checkout-order.dto';
+import {
+  ConfirmCheckoutPaymentDto,
+  RecoverCheckoutOrderDto,
+  StartCheckoutOrderDto,
+} from './dto/create-checkout-order.dto';
 import { ListOrdersQuery } from './dto/list-orders-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
@@ -20,13 +25,36 @@ const ADMIN_STATUS_UPDATES: OrderStatus[] = [
   OrderStatus.CONFIRMED,
   OrderStatus.PREPARING,
   OrderStatus.READY_FOR_PICKUP,
-  OrderStatus.OTP_VERIFICATION_PENDING,
   OrderStatus.COMPLETED,
   OrderStatus.CANCELLED,
 ];
 
+type PreparedCheckoutOrder = {
+  orderItems: Array<{
+    foodItem: {
+      id: string;
+      name: string;
+      isAvailable: boolean;
+      price: Prisma.Decimal;
+      discountPrice: Prisma.Decimal | null;
+    };
+    quantity: number;
+    note?: string;
+    unitPrice: number;
+    totalPrice: number;
+  }>;
+  coupon: { id: string } | null;
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+  pickupTime: Date;
+};
+
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly couponsService: CouponsService,
@@ -35,19 +63,206 @@ export class OrdersService {
     private readonly otpService: OtpService,
   ) {}
 
-  async createCheckoutOrder(
-    dto: CreateCheckoutOrderDto,
+  async startCheckoutOrder(
+    dto: StartCheckoutOrderDto,
+    customerEmail?: string,
+    syncSecret?: string,
+  ) {
+    const customer = await this.resolveCheckoutCustomer(customerEmail, syncSecret);
+
+    if (dto.checkoutAttemptId) {
+      const existingOrder = await this.prisma.order.findFirst({
+        where: {
+          userId: customer.id,
+          checkoutAttemptId: dto.checkoutAttemptId,
+        },
+        include: {
+          items: true,
+          payments: { orderBy: { createdAt: 'desc' } },
+        },
+      });
+
+      if (existingOrder?.payments[0]?.providerOrderId) {
+        return this.serializeCheckoutStart(existingOrder);
+      }
+
+      if (
+        existingOrder &&
+        (existingOrder.status === OrderStatus.PENDING_PAYMENT ||
+          existingOrder.status === OrderStatus.CANCELLED)
+      ) {
+        const pendingOrder =
+          existingOrder.status === OrderStatus.CANCELLED
+            ? await this.prisma.order.update({
+                where: { id: existingOrder.id },
+                data: {
+                  status: OrderStatus.PENDING_PAYMENT,
+                  cancelledAt: null,
+                },
+                include: {
+                  items: true,
+                  payments: { orderBy: { createdAt: 'desc' } },
+                },
+              })
+            : existingOrder;
+
+        return this.attachProviderOrderToPendingOrder(pendingOrder);
+      }
+    }
+
+    const preparedOrder = await this.prepareCheckoutOrder(dto);
+    const orderNumber = `CS-${Date.now()}`;
+    const order = await this.prisma.order.create({
+      data: {
+        orderNumber,
+        checkoutAttemptId: dto.checkoutAttemptId,
+        userId: customer.id,
+        couponId: preparedOrder.coupon?.id,
+        status: OrderStatus.PENDING_PAYMENT,
+        pickupTime: preparedOrder.pickupTime,
+        subtotalAmount: preparedOrder.subtotal,
+        taxAmount: preparedOrder.tax,
+        discountAmount: preparedOrder.discount,
+        totalAmount: preparedOrder.total,
+        estimatedPrepMinutes: dto.pickupSlot.minutesFromNow || 12,
+        items: {
+          create: preparedOrder.orderItems.map((item) => ({
+            foodItemId: item.foodItem.id,
+            name: item.foodItem.name,
+            note: item.note,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+          })),
+        },
+      },
+      include: {
+        items: true,
+        payments: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+
+    return this.attachProviderOrderToPendingOrder(order);
+  }
+
+  async confirmCheckoutPayment(
+    dto: ConfirmCheckoutPaymentDto,
     customerEmail?: string,
     syncSecret?: string,
   ) {
     const paymentVerification = this.paymentsService.verifyRazorpayPayment({
-      razorpayOrderId: dto.payment.razorpayOrderId,
-      razorpayPaymentId: dto.payment.razorpayPaymentId,
-      razorpaySignature: dto.payment.razorpaySignature,
+      razorpayOrderId: dto.razorpayOrderId,
+      razorpayPaymentId: dto.razorpayPaymentId,
+      razorpaySignature: dto.razorpaySignature,
+    });
+    const customer = await this.resolveCheckoutCustomer(customerEmail, syncSecret);
+    const rawPayload =
+      paymentVerification.mode === 'live'
+        ? await this.findVerifiedCapturedPaymentPayload(
+            dto.razorpayOrderId,
+            dto.razorpayPaymentId,
+          )
+        : paymentVerification;
+
+    return this.finalizePaidOrder({
+      userId: customer.id,
+      orderNumber: dto.orderNumber,
+      providerOrderId: dto.razorpayOrderId,
+      providerPaymentId: dto.razorpayPaymentId,
+      providerSignature: dto.razorpaySignature,
+      rawPayload,
+    });
+  }
+
+  async recoverCheckoutOrder(
+    dto: RecoverCheckoutOrderDto,
+    customerEmail?: string,
+    syncSecret?: string,
+  ) {
+    const customer = await this.resolveCheckoutCustomer(customerEmail, syncSecret);
+    const recoveredPayment = await this.paymentsService.findCapturedPaymentForOrder(
+      dto.razorpayOrderId,
+    );
+
+    return this.finalizePaidOrder({
+      userId: customer.id,
+      orderNumber: dto.orderNumber,
+      providerOrderId: dto.razorpayOrderId,
+      providerPaymentId: recoveredPayment.paymentId,
+      rawPayload: recoveredPayment.rawPayload,
+    });
+  }
+
+  async processRazorpayWebhook(
+    rawBody: Buffer | string | undefined,
+    signature?: string,
+    eventIdHeader?: string,
+  ) {
+    this.paymentsService.verifyWebhookSignature(rawBody, signature);
+
+    const payload = this.paymentsService.parseWebhookPayload(rawBody);
+    const event = this.readJsonString(payload, 'event') ?? 'unknown';
+    const paymentEntity = this.readWebhookEntity(payload, 'payment');
+    const orderEntity = this.readWebhookEntity(payload, 'order');
+    const providerOrderId =
+      this.readJsonString(paymentEntity, 'order_id') ?? this.readJsonString(orderEntity, 'id');
+    const providerPaymentId = this.readJsonString(paymentEntity, 'id');
+    const eventId = this.resolveWebhookEventId({
+      eventIdHeader,
+      event,
+      providerOrderId,
+      providerPaymentId,
+      payload,
+    });
+    const webhookEvent = await this.getOrCreateWebhookEvent({
+      eventId,
+      event,
+      providerOrderId,
+      providerPaymentId,
+      payload,
     });
 
-    const customer = await this.resolveCheckoutCustomer(customerEmail, syncSecret);
+    if (webhookEvent.processedAt) {
+      return { received: true, duplicate: true };
+    }
 
+    if (event === 'payment.captured' || event === 'order.paid') {
+      if (!providerOrderId) {
+        throw new BadRequestException('Razorpay webhook does not include an order id.');
+      }
+
+      const capturedPaymentId =
+        providerPaymentId ??
+        (await this.paymentsService.findCapturedPaymentForOrder(providerOrderId)).paymentId;
+
+      await this.finalizePaidOrder({
+        providerOrderId,
+        providerPaymentId: capturedPaymentId,
+        rawPayload: payload,
+      });
+      await this.markWebhookEventProcessed(webhookEvent.id, providerOrderId, capturedPaymentId);
+
+      return { received: true, processed: true };
+    }
+
+    if (event === 'payment.failed') {
+      if (providerOrderId) {
+        await this.markPendingPaymentFailed(providerOrderId, providerPaymentId, payload);
+      }
+
+      await this.markWebhookEventProcessed(webhookEvent.id, providerOrderId, providerPaymentId);
+
+      return { received: true, processed: true };
+    }
+
+    await this.markWebhookEventProcessed(webhookEvent.id, providerOrderId, providerPaymentId);
+
+    return { received: true, processed: false };
+  }
+
+  private async prepareCheckoutOrder(
+    dto: Pick<StartCheckoutOrderDto, 'items' | 'couponCode' | 'pickupSlot'>,
+  ): Promise<PreparedCheckoutOrder> {
     const foodItemFilters: Prisma.FoodItemWhereInput[] = dto.items.flatMap((item) => {
       const filters: Prisma.FoodItemWhereInput[] = [];
 
@@ -101,78 +316,466 @@ export class OrdersService {
     const tax = Math.round(taxableAmount * 0.05);
     const total = taxableAmount + tax;
     const pickupTime = new Date(Date.now() + dto.pickupSlot.minutesFromNow * 60_000);
-    const orderNumber = `CS-${Date.now()}`;
 
-    const order = await this.prisma.$transaction(async (tx) => {
-      const createdOrder = await tx.order.create({
+    return {
+      orderItems,
+      coupon,
+      subtotal,
+      tax,
+      discount,
+      total,
+      pickupTime,
+    };
+  }
+
+  private async attachProviderOrderToPendingOrder(order: {
+    id: string;
+    orderNumber: string;
+    userId: string;
+    status: OrderStatus;
+    pickupTime: Date | null;
+    subtotalAmount: Prisma.Decimal;
+    taxAmount: Prisma.Decimal;
+    discountAmount: Prisma.Decimal;
+    totalAmount: Prisma.Decimal;
+    items: Array<{
+      id: string;
+      name: string;
+      note: string | null;
+      quantity: number;
+      unitPrice: Prisma.Decimal;
+      totalPrice: Prisma.Decimal;
+    }>;
+    payments: Array<{
+      providerOrderId: string | null;
+      providerPaymentId: string | null;
+      currency: string;
+      rawPayload: Prisma.JsonValue | null;
+    }>;
+  }) {
+    if (order.status !== OrderStatus.PENDING_PAYMENT) {
+      throw new BadRequestException('Checkout can only be started for pending payment orders.');
+    }
+
+    const existingPayment = order.payments.find((payment) => payment.providerOrderId);
+
+    if (existingPayment) {
+      return this.serializeCheckoutStart(order);
+    }
+
+    try {
+      const providerOrder = await this.paymentsService.createProviderOrder({
+        amount: order.totalAmount.toNumber(),
+        currency: 'INR',
+        receipt: order.orderNumber,
+        notes: {
+          source: 'crumbstall-web',
+          orderNumber: order.orderNumber,
+          userId: order.userId,
+        },
+      });
+
+      const orderWithPayment = await this.prisma.order.update({
+        where: { id: order.id },
         data: {
-          orderNumber,
-          userId: customer.id,
-          couponId: coupon?.id,
-          status: OrderStatus.PLACED,
-          pickupTime,
-          subtotalAmount: subtotal,
-          taxAmount: tax,
-          discountAmount: discount,
-          totalAmount: total,
-          estimatedPrepMinutes: dto.pickupSlot.minutesFromNow || 12,
-          placedAt: new Date(),
-          items: {
-            create: orderItems.map((item) => ({
-              foodItemId: item.foodItem.id,
-              name: item.foodItem.name,
-              note: item.note,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              totalPrice: item.totalPrice,
-            })),
-          },
+          cancelledAt: null,
+          status: OrderStatus.PENDING_PAYMENT,
           payments: {
             create: {
-              status: PaymentStatus.CAPTURED,
-              amount: total,
-              currency: 'INR',
-              providerOrderId: dto.payment.razorpayOrderId,
-              providerPaymentId: dto.payment.razorpayPaymentId,
-              providerSignature: dto.payment.razorpaySignature,
-              rawPayload: paymentVerification,
+              status: PaymentStatus.CREATED,
+              amount: order.totalAmount,
+              currency: providerOrder.currency,
+              providerOrderId: providerOrder.orderId,
+              rawPayload: providerOrder,
             },
           },
         },
         include: {
           items: true,
-          payments: true,
+          payments: { orderBy: { createdAt: 'desc' } },
         },
       });
 
-      if (coupon) {
-        await tx.coupon.update({
-          where: { id: coupon.id },
-          data: { usedCount: { increment: 1 } },
-        });
-        await tx.couponUsage.create({
+      return this.serializeCheckoutStart(orderWithPayment);
+    } catch (error) {
+      await this.prisma.order
+        .update({
+          where: { id: order.id },
           data: {
-            couponId: coupon.id,
-            userId: customer.id,
-            orderId: createdOrder.id,
+            status: OrderStatus.CANCELLED,
+            cancelledAt: new Date(),
           },
+        })
+        .catch((updateError: unknown) => {
+          this.logger.warn(
+            `Could not mark failed checkout ${order.orderNumber} as cancelled: ${
+              updateError instanceof Error ? updateError.message : String(updateError)
+            }`,
+          );
         });
-      }
 
-      return createdOrder;
-    });
+      throw error;
+    }
+  }
 
-    await this.notificationsService.create({
-      userId: customer.id,
-      type: NotificationType.ORDER_PLACED,
-      title: 'Order placed',
-      message: `Your order ${order.orderNumber} has been placed.`,
-      metadata: {
-        orderNumber: order.orderNumber,
-        status: order.status,
+  private async findVerifiedCapturedPaymentPayload(
+    razorpayOrderId: string,
+    razorpayPaymentId: string,
+  ) {
+    const capturedPayment = await this.paymentsService.findCapturedPaymentForOrder(
+      razorpayOrderId,
+    );
+
+    if (capturedPayment.paymentId !== razorpayPaymentId) {
+      throw new BadRequestException('Captured payment does not match the checkout payment id.');
+    }
+
+    return capturedPayment.rawPayload;
+  }
+
+  private async finalizePaidOrder(input: {
+    userId?: string;
+    orderNumber?: string;
+    providerOrderId: string;
+    providerPaymentId: string;
+    providerSignature?: string;
+    rawPayload: Prisma.InputJsonValue;
+  }) {
+    const payment = await this.prisma.payment.findFirst({
+      where: { providerOrderId: input.providerOrderId },
+      include: {
+        order: {
+          include: {
+            items: true,
+            payments: { orderBy: { createdAt: 'desc' } },
+          },
+        },
       },
     });
 
+    if (!payment) {
+      throw new NotFoundException('Payment record was not found for this Razorpay order.');
+    }
+
+    if (input.userId && payment.order.userId !== input.userId) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (input.orderNumber && payment.order.orderNumber !== input.orderNumber) {
+      throw new BadRequestException('Payment does not belong to this order.');
+    }
+
+    if (payment.providerPaymentId && payment.providerPaymentId !== input.providerPaymentId) {
+      throw new BadRequestException('Payment was already captured with a different payment id.');
+    }
+
+    this.assertCapturedAmountMatches(payment.amount, input.rawPayload);
+
+    const { order, transitionedToPlaced } = await this.prisma.$transaction(async (tx) => {
+      const currentPayment = await tx.payment.findUnique({
+        where: { id: payment.id },
+        include: {
+          order: {
+            include: {
+              items: true,
+              payments: { orderBy: { createdAt: 'desc' } },
+            },
+          },
+        },
+      });
+
+      if (!currentPayment) {
+        throw new NotFoundException('Payment record was not found for this Razorpay order.');
+      }
+
+      if (
+        currentPayment.providerPaymentId &&
+        currentPayment.providerPaymentId !== input.providerPaymentId
+      ) {
+        throw new BadRequestException('Payment was already captured with a different payment id.');
+      }
+
+      await tx.payment.update({
+        where: { id: currentPayment.id },
+        data: {
+          status: PaymentStatus.CAPTURED,
+          providerPaymentId: input.providerPaymentId,
+          providerSignature: input.providerSignature ?? currentPayment.providerSignature,
+          rawPayload: input.rawPayload,
+        },
+      });
+
+      const updateResult = await tx.order.updateMany({
+        where: {
+          id: currentPayment.orderId,
+          status: OrderStatus.PENDING_PAYMENT,
+        },
+        data: {
+          status: OrderStatus.PLACED,
+          placedAt: new Date(),
+          cancelledAt: null,
+        },
+      });
+      const transitionedToPlaced = updateResult.count === 1;
+
+      if (transitionedToPlaced && currentPayment.order.couponId) {
+        const existingUsage = await tx.couponUsage.findFirst({
+          where: {
+            orderId: currentPayment.orderId,
+            couponId: currentPayment.order.couponId,
+          },
+          select: { id: true },
+        });
+
+        if (!existingUsage) {
+          await tx.coupon.update({
+            where: { id: currentPayment.order.couponId },
+            data: { usedCount: { increment: 1 } },
+          });
+          await tx.couponUsage.create({
+            data: {
+              couponId: currentPayment.order.couponId,
+              userId: currentPayment.order.userId,
+              orderId: currentPayment.orderId,
+            },
+          });
+        }
+      }
+
+      const finalizedOrder = await tx.order.findUniqueOrThrow({
+        where: { id: currentPayment.orderId },
+        include: {
+          items: true,
+          payments: { orderBy: { createdAt: 'desc' } },
+        },
+      });
+
+      return {
+        order: finalizedOrder,
+        transitionedToPlaced,
+      };
+    });
+
+    if (transitionedToPlaced) {
+      await this.sendOrderPlacedNotification(order.userId, order.orderNumber, order.status);
+    }
+
+    return this.serializeCheckoutOrder(order);
+  }
+
+  private async markPendingPaymentFailed(
+    providerOrderId: string,
+    providerPaymentId: string | undefined,
+    rawPayload: Prisma.InputJsonValue,
+  ) {
+    const payment = await this.prisma.payment.findFirst({
+      where: { providerOrderId },
+      include: {
+        order: {
+          select: { status: true },
+        },
+      },
+    });
+
+    if (!payment || payment.status === PaymentStatus.CAPTURED) {
+      return;
+    }
+
+    if (payment.order.status !== OrderStatus.PENDING_PAYMENT) {
+      return;
+    }
+
+    await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: PaymentStatus.FAILED,
+        providerPaymentId: providerPaymentId ?? payment.providerPaymentId,
+        rawPayload,
+      },
+    });
+  }
+
+  private async sendOrderPlacedNotification(
+    userId: string,
+    orderNumber: string,
+    status: OrderStatus,
+  ) {
+    try {
+      await this.notificationsService.create({
+        userId,
+        type: NotificationType.ORDER_PLACED,
+        title: 'Order placed',
+        message: `Your order ${orderNumber} has been placed.`,
+        metadata: {
+          orderNumber,
+          status,
+        },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Order ${orderNumber} was placed, but notification creation failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  private assertCapturedAmountMatches(amount: Prisma.Decimal, rawPayload: unknown) {
+    const capturedAmount = this.extractAmountInPaise(rawPayload);
+
+    if (capturedAmount === null) {
+      return;
+    }
+
+    const expectedAmount = Math.round(amount.toNumber() * 100);
+
+    if (capturedAmount !== expectedAmount) {
+      throw new BadRequestException('Captured payment amount does not match the order total.');
+    }
+  }
+
+  private extractAmountInPaise(rawPayload: unknown): number | null {
+    const directAmount = this.readJsonNumber(rawPayload, 'amount');
+
+    if (directAmount !== null) {
+      return directAmount;
+    }
+
+    const paymentEntity = this.readWebhookEntity(rawPayload, 'payment');
+
+    return this.readJsonNumber(paymentEntity, 'amount');
+  }
+
+  private async getOrCreateWebhookEvent(input: {
+    eventId: string;
+    event: string;
+    providerOrderId?: string;
+    providerPaymentId?: string;
+    payload: Prisma.InputJsonValue;
+  }) {
+    const existingEvent = await this.prisma.paymentWebhookEvent.findUnique({
+      where: { eventId: input.eventId },
+    });
+
+    if (existingEvent) {
+      return existingEvent;
+    }
+
+    try {
+      return await this.prisma.paymentWebhookEvent.create({
+        data: {
+          eventId: input.eventId,
+          event: input.event,
+          providerOrderId: input.providerOrderId,
+          providerPaymentId: input.providerPaymentId,
+          rawPayload: input.payload,
+        },
+      });
+    } catch (error) {
+      if (this.isUniqueConstraintError(error)) {
+        return this.prisma.paymentWebhookEvent.findUniqueOrThrow({
+          where: { eventId: input.eventId },
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  private async markWebhookEventProcessed(
+    id: string,
+    providerOrderId?: string,
+    providerPaymentId?: string,
+  ) {
+    await this.prisma.paymentWebhookEvent.update({
+      where: { id },
+      data: {
+        providerOrderId,
+        providerPaymentId,
+        processedAt: new Date(),
+      },
+    });
+  }
+
+  private resolveWebhookEventId(input: {
+    eventIdHeader?: string;
+    event: string;
+    providerOrderId?: string;
+    providerPaymentId?: string;
+    payload: Prisma.JsonObject;
+  }) {
+    if (input.eventIdHeader?.trim()) {
+      return input.eventIdHeader.trim();
+    }
+
+    const createdAt = this.readJsonNumber(input.payload, 'created_at') ?? Date.now();
+
+    return [
+      input.event,
+      input.providerOrderId ?? 'unknown-order',
+      input.providerPaymentId ?? 'unknown-payment',
+      createdAt,
+    ].join(':');
+  }
+
+  private readWebhookEntity(payload: unknown, entity: 'payment' | 'order') {
+    const payloadRecord = this.asJsonRecord(payload);
+    const innerPayload = this.asJsonRecord(payloadRecord?.payload);
+    const entityWrapper = this.asJsonRecord(innerPayload?.[entity]);
+
+    return this.asJsonRecord(entityWrapper?.entity);
+  }
+
+  private readJsonString(payload: unknown, key: string) {
+    const record = this.asJsonRecord(payload);
+    const value = record?.[key];
+
+    return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  }
+
+  private readJsonNumber(payload: unknown, key: string) {
+    const record = this.asJsonRecord(payload);
+    const value = record?.[key];
+
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  }
+
+  private asJsonRecord(payload: unknown): Record<string, unknown> | null {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return null;
+    }
+
+    return payload as Record<string, unknown>;
+  }
+
+  private isUniqueConstraintError(error: unknown) {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: string }).code === 'P2002'
+    );
+  }
+
+  private serializeCheckoutOrder(order: {
+    id: string;
+    orderNumber: string;
+    status: OrderStatus;
+    pickupTime: Date | null;
+    subtotalAmount: Prisma.Decimal;
+    taxAmount: Prisma.Decimal;
+    discountAmount: Prisma.Decimal;
+    totalAmount: Prisma.Decimal;
+    payments: Array<{ providerPaymentId: string | null }>;
+    items: Array<{
+      id: string;
+      name: string;
+      note: string | null;
+      quantity: number;
+      unitPrice: Prisma.Decimal;
+      totalPrice: Prisma.Decimal;
+    }>;
+  }) {
     return {
       id: order.id,
       orderNumber: order.orderNumber,
@@ -191,6 +794,58 @@ export class OrdersService {
         unitPrice: item.unitPrice.toNumber(),
         totalPrice: item.totalPrice.toNumber(),
       })),
+    };
+  }
+
+  private serializeCheckoutStart(order: {
+    id: string;
+    orderNumber: string;
+    status: OrderStatus;
+    pickupTime: Date | null;
+    subtotalAmount: Prisma.Decimal;
+    taxAmount: Prisma.Decimal;
+    discountAmount: Prisma.Decimal;
+    totalAmount: Prisma.Decimal;
+    payments: Array<{
+      providerOrderId: string | null;
+      providerPaymentId: string | null;
+      currency: string;
+      rawPayload: Prisma.JsonValue | null;
+    }>;
+    items: Array<{
+      id: string;
+      name: string;
+      note: string | null;
+      quantity: number;
+      unitPrice: Prisma.Decimal;
+      totalPrice: Prisma.Decimal;
+    }>;
+  }) {
+    const payment = order.payments.find((item) => item.providerOrderId);
+
+    if (!payment?.providerOrderId) {
+      throw new BadRequestException('Checkout payment order was not created.');
+    }
+
+    const rawPayload = this.asJsonRecord(payment.rawPayload);
+    const isMockOrder = payment.providerOrderId.startsWith('order_mock_');
+    const amount =
+      this.readJsonNumber(rawPayload, 'amount') ?? Math.round(order.totalAmount.toNumber() * 100);
+    const keyId =
+      this.readJsonString(rawPayload, 'keyId') ??
+      process.env.RAZORPAY_KEY_ID ??
+      'rzp_test_mock_key';
+
+    return {
+      ...this.serializeCheckoutOrder(order),
+      razorpay: {
+        mode: isMockOrder ? 'mock' : 'live',
+        keyId,
+        orderId: payment.providerOrderId,
+        amount,
+        currency: payment.currency,
+        receipt: order.orderNumber,
+      },
     };
   }
 
@@ -613,7 +1268,7 @@ function getNotificationTitleForStatus(status: OrderStatus) {
     case OrderStatus.CONFIRMED:
       return 'Order confirmed';
     case OrderStatus.PREPARING:
-      return 'Order is being prepared';
+      return 'Order preparing';
     case OrderStatus.READY_FOR_PICKUP:
     case OrderStatus.OTP_VERIFICATION_PENDING:
       return 'Order ready for pickup';

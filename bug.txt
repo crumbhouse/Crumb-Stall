@@ -1,0 +1,161 @@
+1. The cards in the "popular right now" has different heights. Every card throughout the application should be aligned properly.
+
+Status: Addressed. Food cards now use full-height flex layout, aligned title/description/footer spacing, and stretched grids for menu, recommendations, categories, and saved items.
+
+2. In mobile the searchbar is not working
+
+Status: Addressed. Menu search now has an explicit Search action that scrolls to results, and active search/filter mode hides the mobile promo/category sections so filtered items appear immediately.
+
+3. Some issue is occuring in the pending cart item page when i am not logged in and try to add a item
+to the cart it asks me to login. After login I get the following error:
+ Uncaught Error: Module [project]/node_modules/next/navigation.js [app-client] (ecmascript) was instantiated because it was required from module [project]/components/add-to-cart-button.tsx [app-client] (ecmascript), but the module factory is not available.
+This is often caused by a stale browser cache, misconfigured Cache-Control headers, or a service worker serving outdated responses.
+To fix this, make sure your Cache-Control headers allow revalidation of chunks and review your service worker configuration. As an immediate workaround, try hard-reloading the page, clearing the browser cache, or unregistering any service workers.
+    at module evaluation (lib/pending-cart-item.ts:33:1)
+    at module evaluation (components/mobile-bar.tsx:6:17)
+    at MenuScreen (components/menu-screen.tsx:6:10)
+    at MenuPage (app/menu/page.tsx:4:10)
+  31 |     return null;
+  32 |   }
+> 33 | }
+     | ^
+
+Status: Addressed. Pending cart item consumption now lives in the root cart provider after authenticated backend-cart sync, and `MenuClient` no longer imports the pending cart helper. If a browser still shows the old `next/navigation` module-factory error, hard refresh once or restart the Next dev server to clear stale chunks.
+
+4. Google profile pic is not shown. Its saying too many requests. 
+Request URL
+https://lh3.googleusercontent.com/a/ACg8ocKlNU6GANPzu7sEJKDw_GQRGliFuaRwNvLpAobzWbuQga9oCY4=s96-c
+Request Method
+GET
+Status Code
+429 Too Many Requests
+Referrer Policy
+strict-origin-when-cross-origin
+
+5. When i click on the filter button in the order page without giving any filters, the UI get messed up. Navbar "Crumb Stall" becomes smaller along with the logo. 
+The notification icon get bigger.
+The filter and the search bar becomes vertical from horizontal. I have to hard reload to fix that
+
+6. I feel the bill component in the right side of cart and checkout page should start from the cards from 
+the left right. From UX point of view it feel like the right side card is not aligned with the left side card rather
+it is aligned with the left side heading.
+
+7. while checking out in the payment page, while the payment was confirming, i reloaded the site
+there was no order placed even though the amount was deducted in Razorpay. This is a very critical feature
+that is broken and this needs to be fixed. The system doesnot follow the principle of Idempotency.
+₹ 149.00
+₹ - Indian Rupee (INR)
+Captured
+
+Created on:
+
+Thu Jun 4, 08:14pm
+
+Details
+
+Payment ID
+
+pay_SxajZXL5w1kO0O
+
+
+Bank RRN
+
+--
+
+Order ID
+
+
+order_Sxaj5ZU1JtCc0O
+
+
+Invoice ID
+
+--
+
+Payment method
+
+Paylater
+
+
+Customer details
+
++91 9348 183170
+
+
+ashutoshrath1612@gmail.com
+
+
+Total Fee
+
+₹
+3
+.52
+Razorpay Fee - 
+₹
+2
+.98
+GST - 
+₹
+0
+.54
+
+Fee bearer
+
+You pay the Razorpay platform fee
+
+App Name
+
+--
+
+App ID
+
+--
+
+Description
+
+Food pickup order
+
+Notes
+
+source: crumbstall-web
+
+Status: Addressed in the payment hardening pass. Checkout now creates an internal pending order before Razorpay opens, stores only recoverable order identifiers in session storage, verifies or recovers captured payments against that pending order, and adds a Razorpay webhook ledger for server-side finalization.
+
+
+8. The invoice pdf looks so dull it should atleast look like the invoice page in our application
+
+9. on logging out I get this issue.
+
+
+Module [project]/node_modules/next/navigation.js [app-client] (ecmascript) was instantiated because it was required from module [project]/components/add-to-cart-button.tsx [app-client] (ecmascript), but the module factory is not available.
+This is often caused by a stale browser cache, misconfigured Cache-Control headers, or a service worker serving outdated responses.
+To fix this, make sure your Cache-Control headers allow revalidation of chunks and review your service worker configuration. As an immediate workaround, try hard-reloading the page, clearing the browser cache, or unregistering any service workers.
+lib/pending-cart-item.ts (33:1) @ module evaluation
+
+
+  31 |     return null;
+  32 |   }
+> 33 | }
+     | ^
+  34 |
+
+
+10. No realtime sync between changing order status between the admin and the users. user have to realod to see the updated status. 
+
+11. When status changes to "Preparing", the notification user get is "Your order is prepared". This is clearly a status mismatch and can create confusion.
+
+12. Order status notification is not realtime as well
+
+13. I dont get the point of "Otp verification pending status", once the order is ready its should technically be
+both in ready state and otp verification pending status. Because I can see once the order is ready the otp is generated automatically
+
+
+14. In the cutomer side i can see the otp when the order is ready but i didn't get any option to enter the otp in the admin side
+
+15. Admin side is completely broken
+
+16. Orders in the admin side should show every piece of information
+
+17. Admin login page looks like a trash
+
+18. On clicking any completed order for its details it says order not found

@@ -7,39 +7,65 @@ export type CheckoutOrderItemDto = {
   note?: string;
 };
 
-export type CreateCheckoutOrderDto = {
-  items: CheckoutOrderItemDto[];
-  couponCode?: string;
-  pickupSlot: {
-    id: string;
-    label: string;
-    minutesFromNow: number;
-  };
-  payment: {
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature: string;
-  };
+export type CheckoutPickupSlotDto = {
+  id: string;
+  label: string;
+  minutesFromNow: number;
 };
 
-export function parseCreateCheckoutOrderDto(body: Record<string, unknown>): CreateCheckoutOrderDto {
+export type StartCheckoutOrderDto = {
+  items: CheckoutOrderItemDto[];
+  couponCode?: string;
+  pickupSlot: CheckoutPickupSlotDto;
+  checkoutAttemptId?: string;
+};
+
+export type ConfirmCheckoutPaymentDto = {
+  orderNumber: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+};
+
+export type RecoverCheckoutOrderDto = {
+  orderNumber: string;
+  razorpayOrderId: string;
+};
+
+export function parseStartCheckoutOrderDto(body: Record<string, unknown>): StartCheckoutOrderDto {
   if (!Array.isArray(body.items) || body.items.length === 0) {
     throw new BadRequestException('items must contain at least one item');
   }
 
-  const items = body.items.map((item) => parseOrderItem(item));
-  const pickupSlot = parsePickupSlot(body.pickupSlot);
-  const payment = parsePayment(body.payment);
-  const couponCode =
-    typeof body.couponCode === 'string' && body.couponCode.trim()
-      ? body.couponCode.trim().toUpperCase()
-      : undefined;
-
   return {
-    items,
-    couponCode,
-    pickupSlot,
-    payment,
+    items: body.items.map((item) => parseOrderItem(item)),
+    couponCode:
+      typeof body.couponCode === 'string' && body.couponCode.trim()
+        ? body.couponCode.trim().toUpperCase()
+        : undefined,
+    pickupSlot: parsePickupSlot(body.pickupSlot),
+    checkoutAttemptId:
+      typeof body.checkoutAttemptId === 'string' && body.checkoutAttemptId.trim()
+        ? body.checkoutAttemptId.trim().slice(0, 120)
+        : undefined,
+  };
+}
+
+export function parseConfirmCheckoutPaymentDto(
+  body: Record<string, unknown>,
+): ConfirmCheckoutPaymentDto {
+  return {
+    orderNumber: readString(body.orderNumber, 'orderNumber'),
+    razorpayOrderId: readString(body.razorpayOrderId, 'razorpayOrderId'),
+    razorpayPaymentId: readString(body.razorpayPaymentId, 'razorpayPaymentId'),
+    razorpaySignature: readString(body.razorpaySignature, 'razorpaySignature'),
+  };
+}
+
+export function parseRecoverCheckoutOrderDto(body: Record<string, unknown>): RecoverCheckoutOrderDto {
+  return {
+    orderNumber: readString(body.orderNumber, 'orderNumber'),
+    razorpayOrderId: readString(body.razorpayOrderId, 'razorpayOrderId'),
   };
 }
 
@@ -70,7 +96,7 @@ function parseOrderItem(value: unknown): CheckoutOrderItemDto {
   };
 }
 
-function parsePickupSlot(value: unknown): CreateCheckoutOrderDto['pickupSlot'] {
+function parsePickupSlot(value: unknown): CheckoutPickupSlotDto {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new BadRequestException('pickupSlot is required');
   }
@@ -88,23 +114,6 @@ function parsePickupSlot(value: unknown): CreateCheckoutOrderDto['pickupSlot'] {
     id,
     label,
     minutesFromNow,
-  };
-}
-
-function parsePayment(value: unknown): CreateCheckoutOrderDto['payment'] {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new BadRequestException('payment is required');
-  }
-
-  const record = value as Record<string, unknown>;
-  const razorpayOrderId = readString(record.razorpayOrderId, 'payment.razorpayOrderId');
-  const razorpayPaymentId = readString(record.razorpayPaymentId, 'payment.razorpayPaymentId');
-  const razorpaySignature = readString(record.razorpaySignature, 'payment.razorpaySignature');
-
-  return {
-    razorpayOrderId,
-    razorpayPaymentId,
-    razorpaySignature,
   };
 }
 

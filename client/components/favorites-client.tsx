@@ -19,7 +19,7 @@ export function FavoritesClient({ initialItems }: { initialItems: FoodItem[] }) 
   }
 
   return (
-    <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="mt-6 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => (
         <FoodCard
           key={item.id}

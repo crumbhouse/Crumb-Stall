@@ -49,6 +49,8 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add cart coupon input and validation UI.
 - [x] Add checkout pickup-time validation.
 - [x] Integrate Razorpay order creation and payment verification.
+- [x] Start checkout from a pending internal order instead of browser-created payment amount.
+- [x] Recover captured Razorpay payments after checkout reloads.
 - [x] Create real order after successful payment.
 - [x] Add real order tracking statuses.
 - [x] Add OTP display for ready orders.
@@ -67,6 +69,12 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add coupon validation APIs.
 - [x] Add checkout/order creation APIs.
 - [x] Add Razorpay payment create/verify APIs.
+- [x] Harden checkout payments with pending internal orders before Razorpay checkout.
+- [x] Add checkout attempt idempotency and unique Razorpay order/payment IDs.
+- [x] Add captured-payment recovery after checkout reloads.
+- [x] Add Razorpay webhook event ledger and raw-body webhook endpoint.
+- [x] Remove browser usage of arbitrary amount-based Razorpay order creation.
+- [x] Remove exposed legacy checkout route that could skip pending-order creation.
 - [x] Add order status update APIs.
 - [x] Add OTP generation, hashing, expiry, attempts, and verification APIs.
 - [x] Add notifications APIs.
@@ -116,6 +124,8 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add coupon validation APIs.
 - [x] Add checkout/order creation APIs.
 - [x] Add Razorpay payment create/verify APIs.
+- [x] Add checkout start, confirm, and recover APIs for idempotent payment finalization.
+- [x] Add Razorpay webhook endpoint with duplicate event tracking.
 - [x] Add order status update APIs.
 - [x] Add OTP generation, hashing, expiry, attempts, and verification APIs.
 - [x] Add invoice generation service.
@@ -156,7 +166,8 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 
 - [ ] Add request rate limiting.
 - [ ] Add secure CORS config per environment.
-- [ ] Add payment signature verification tests.
+- [x] Add payment signature verification tests.
+- [ ] Add webhook integration tests for Razorpay captured/failed events.
 - [ ] Add OTP hashing tests.
 - [ ] Add audit logs for admin actions.
 - [ ] Add API integration tests.
