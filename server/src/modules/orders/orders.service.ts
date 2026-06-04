@@ -5,10 +5,11 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { OrderStatus, PaymentStatus, Prisma } from '@prisma/client';
+import { NotificationType, OrderStatus, PaymentStatus, Prisma } from '@prisma/client';
 import { timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
 import { CouponsService } from '../coupons/coupons.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { OtpService } from '../otp/otp.service';
 import { PaymentsService } from '../payments/payments.service';
 import { CreateCheckoutOrderDto } from './dto/create-checkout-order.dto';
@@ -29,6 +30,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly couponsService: CouponsService,
+    private readonly notificationsService: NotificationsService,
     private readonly paymentsService: PaymentsService,
     private readonly otpService: OtpService,
   ) {}
@@ -158,6 +160,17 @@ export class OrdersService {
       }
 
       return createdOrder;
+    });
+
+    await this.notificationsService.create({
+      userId: customer.id,
+      type: NotificationType.ORDER_PLACED,
+      title: 'Order placed',
+      message: `Your order ${order.orderNumber} has been placed.`,
+      metadata: {
+        orderNumber: order.orderNumber,
+        status: order.status,
+      },
     });
 
     return {
@@ -439,6 +452,17 @@ export class OrdersService {
       },
     });
 
+    await this.notificationsService.create({
+      userId: updatedOrder.userId,
+      type: getNotificationTypeForStatus(updatedOrder.status),
+      title: getNotificationTitleForStatus(updatedOrder.status),
+      message: getNotificationMessageForStatus(updatedOrder.orderNumber, updatedOrder.status),
+      metadata: {
+        orderNumber: updatedOrder.orderNumber,
+        status: updatedOrder.status,
+      },
+    });
+
     return {
       id: updatedOrder.id,
       orderNumber: updatedOrder.orderNumber,
@@ -566,6 +590,58 @@ function getOrderStatusLabel(status: OrderStatus) {
     .split('_')
     .map((word) => word[0] + word.slice(1).toLowerCase())
     .join(' ');
+}
+
+function getNotificationTypeForStatus(status: OrderStatus) {
+  switch (status) {
+    case OrderStatus.CONFIRMED:
+      return NotificationType.ORDER_CONFIRMED;
+    case OrderStatus.PREPARING:
+      return NotificationType.ORDER_PREPARING;
+    case OrderStatus.READY_FOR_PICKUP:
+    case OrderStatus.OTP_VERIFICATION_PENDING:
+      return NotificationType.READY_FOR_PICKUP;
+    case OrderStatus.COMPLETED:
+      return NotificationType.ORDER_COMPLETED;
+    default:
+      return NotificationType.ORDER_PLACED;
+  }
+}
+
+function getNotificationTitleForStatus(status: OrderStatus) {
+  switch (status) {
+    case OrderStatus.CONFIRMED:
+      return 'Order confirmed';
+    case OrderStatus.PREPARING:
+      return 'Order is being prepared';
+    case OrderStatus.READY_FOR_PICKUP:
+    case OrderStatus.OTP_VERIFICATION_PENDING:
+      return 'Order ready for pickup';
+    case OrderStatus.COMPLETED:
+      return 'Order completed';
+    case OrderStatus.CANCELLED:
+      return 'Order cancelled';
+    default:
+      return 'Order updated';
+  }
+}
+
+function getNotificationMessageForStatus(orderNumber: string, status: OrderStatus) {
+  switch (status) {
+    case OrderStatus.CONFIRMED:
+      return `Your order ${orderNumber} has been confirmed.`;
+    case OrderStatus.PREPARING:
+      return `Your order ${orderNumber} is being prepared.`;
+    case OrderStatus.READY_FOR_PICKUP:
+    case OrderStatus.OTP_VERIFICATION_PENDING:
+      return `Your order ${orderNumber} is ready. Show the pickup OTP at the counter.`;
+    case OrderStatus.COMPLETED:
+      return `Your order ${orderNumber} has been completed.`;
+    case OrderStatus.CANCELLED:
+      return `Your order ${orderNumber} was cancelled.`;
+    default:
+      return `Your order ${orderNumber} was updated.`;
+  }
 }
 
 function safeEqual(value: string, expected: string) {

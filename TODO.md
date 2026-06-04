@@ -69,12 +69,13 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add Razorpay payment create/verify APIs.
 - [x] Add order status update APIs.
 - [x] Add OTP generation, hashing, expiry, attempts, and verification APIs.
+- [x] Add notifications APIs.
 - [x] Verify client lint and build.
 - [x] Verify server tests and build after backend foundation work.
 
 ## Next Task
 
-- [ ] Add notifications APIs.
+- [ ] Add recommendation APIs.
 
 ## Customer Flow
 
@@ -109,7 +110,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add invoice generation service.
 - [x] Add review APIs.
 - [x] Add favorites APIs.
-- [ ] Add notifications APIs.
+- [x] Add notifications APIs.
 - [ ] Add recommendation APIs.
 - [ ] Add analytics APIs.
 - [ ] Add reports APIs.

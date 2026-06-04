@@ -1,14 +1,22 @@
 import { OrderStatus } from '@prisma/client';
 import { OtpService } from './otp.service';
 
+const notifications = {
+  create: jest.fn(),
+};
+
 describe('OtpService', () => {
+  beforeEach(() => {
+    notifications.create.mockClear();
+  });
+
   it('does not expose an OTP before an order is ready', async () => {
     const prisma = {
       orderOtp: {
         findUnique: jest.fn(),
       },
     };
-    const service = new OtpService(prisma as never);
+    const service = new OtpService(prisma as never, notifications as never);
 
     await expect(
       service.getDisplayOtpForOrder({ id: 'order-1', status: OrderStatus.PLACED }),
@@ -28,7 +36,7 @@ describe('OtpService', () => {
         ),
       },
     };
-    const service = new OtpService(prisma as never);
+    const service = new OtpService(prisma as never, notifications as never);
     const otp = await service.getDisplayOtpForOrder({
       id: 'order-1',
       status: OrderStatus.READY_FOR_PICKUP,
@@ -50,6 +58,7 @@ describe('OtpService', () => {
       order: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'order-1',
+          userId: 'user-1',
           status: OrderStatus.READY_FOR_PICKUP,
         }),
         update: jest.fn(),
@@ -70,7 +79,7 @@ describe('OtpService', () => {
       },
       $transaction: jest.fn().mockResolvedValue([]),
     };
-    const service = new OtpService(prisma as never);
+    const service = new OtpService(prisma as never, notifications as never);
     const otp = await service.generateForOrderNumber('CS-1');
     const result = await service.verifyForOrderNumber('CS-1', otp?.code ?? '');
 
@@ -87,6 +96,7 @@ describe('OtpService', () => {
       order: {
         findUnique: jest.fn().mockResolvedValue({
           id: 'order-1',
+          userId: 'user-1',
           status: OrderStatus.READY_FOR_PICKUP,
         }),
       },
@@ -102,7 +112,7 @@ describe('OtpService', () => {
         update: jest.fn().mockResolvedValue({ attemptCount: 1 }),
       },
     };
-    const service = new OtpService(prisma as never);
+    const service = new OtpService(prisma as never, notifications as never);
 
     await expect(service.verifyForOrderNumber('CS-1', '123456')).rejects.toThrow('Invalid OTP');
     expect(prisma.orderOtp.update).toHaveBeenCalledWith(

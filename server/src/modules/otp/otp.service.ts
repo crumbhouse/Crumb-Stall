@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { OrderStatus } from '@prisma/client';
+import { NotificationType, OrderStatus } from '@prisma/client';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { OTP_EXPIRY_MINUTES, OTP_MAX_ATTEMPTS } from '../../common/constants/app.constants';
 import { PrismaService } from '../../database/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type OtpOrder = {
   id: string;
@@ -11,13 +12,17 @@ type OtpOrder = {
 
 @Injectable()
 export class OtpService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async generateForOrderNumber(orderNumber: string) {
     const order = await this.prisma.order.findUnique({
       where: { orderNumber },
       select: {
         id: true,
+        userId: true,
         status: true,
       },
     });
@@ -33,7 +38,22 @@ export class OtpService {
       throw new BadRequestException('OTP can only be generated for ready pickup orders');
     }
 
-    return this.getDisplayOtpForOrder(order);
+    const otp = await this.getDisplayOtpForOrder(order);
+
+    if (otp) {
+      await this.notificationsService.create({
+        userId: order.userId,
+        type: NotificationType.OTP_GENERATED,
+        title: 'Pickup OTP generated',
+        message: `Your pickup OTP for order ${orderNumber} is ${otp.code}.`,
+        metadata: {
+          orderNumber,
+          expiresAt: otp.expiresAt,
+        },
+      });
+    }
+
+    return otp;
   }
 
   async getDisplayOtpForOrder(order: OtpOrder) {
@@ -87,6 +107,7 @@ export class OtpService {
       where: { orderNumber },
       select: {
         id: true,
+        userId: true,
         status: true,
       },
     });
@@ -149,6 +170,17 @@ export class OtpService {
         },
       }),
     ]);
+
+    await this.notificationsService.create({
+      userId: order.userId,
+      type: NotificationType.ORDER_COMPLETED,
+      title: 'Order completed',
+      message: `Your order ${orderNumber} has been picked up successfully.`,
+      metadata: {
+        orderNumber,
+        verifiedAt: now.toISOString(),
+      },
+    });
 
     return {
       verified: true,

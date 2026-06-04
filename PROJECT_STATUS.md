@@ -86,10 +86,11 @@ Last updated: 2026-06-03
 - Hardened Razorpay create/verify APIs with class-based validation and live signature verification tests.
 - Added admin-protected order status update APIs and connected the admin orders page to real order data/status controls.
 - Added admin-protected OTP generation and verification APIs with hashed storage, expiry, attempt limits, and order completion on successful verification.
+- Added authenticated notifications APIs, Next.js proxies, and notification creation hooks for order, status, OTP, and completion events.
 
 ## Current Next Task
 
-- Add notifications APIs.
+- Add recommendation APIs.
 
 ## Local Setup Steps For You
 
