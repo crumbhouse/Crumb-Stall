@@ -1,4 +1,5 @@
 import type { Account, AuthOptions, User } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
@@ -15,6 +16,54 @@ export const authOptions: AuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
     }),
+    CredentialsProvider({
+      id: "admin-credentials",
+      name: "Admin credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const email = credentials?.email?.trim();
+        const password = credentials?.password;
+
+        if (!email || !password) {
+          return null;
+        }
+
+        const response = await fetch(`${apiUrl}/auth/admin/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!response.ok) {
+          return null;
+        }
+
+        const payload = (await response.json()) as {
+          user?: {
+            id: string;
+            email: string;
+            name: string | null;
+            imageUrl: string | null;
+            role: "ADMIN" | "SUPER_ADMIN";
+          };
+        };
+
+        if (!payload.user) {
+          return null;
+        }
+
+        return {
+          id: payload.user.id,
+          email: payload.user.email,
+          name: payload.user.name,
+          image: payload.user.imageUrl,
+          role: payload.user.role,
+        };
+      },
+    }),
   ],
   callbacks: {
     async signIn({ user, account }) {
@@ -26,8 +75,7 @@ export const authOptions: AuthOptions = {
         return false;
       }
 
-      await syncGoogleUser(user, account);
-      return true;
+      return syncGoogleUser(user, account);
     },
     async jwt({ token }) {
       if (token.email) {
@@ -74,9 +122,13 @@ async function syncGoogleUser(user: User, account: Account) {
 
     if (!response.ok) {
       console.warn(`Google user sync failed with status ${response.status}.`);
+      return false;
     }
+
+    return true;
   } catch (error) {
     console.warn("Google user sync failed.", error);
+    return false;
   }
 }
 
@@ -100,7 +152,7 @@ async function getSessionUser(email: string) {
         id: string;
         name: string | null;
         imageUrl: string | null;
-        role: "CUSTOMER" | "ADMIN";
+        role: "CUSTOMER" | "ADMIN" | "SUPER_ADMIN";
       };
     };
 

@@ -10,12 +10,20 @@ datasource db {
 enum UserRole {
   CUSTOMER
   ADMIN
+  SUPER_ADMIN
 }
 
 enum AuthProvider {
   GOOGLE
   GITHUB
   MICROSOFT
+  CREDENTIALS
+}
+
+enum AdminApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum FoodType {
@@ -78,6 +86,11 @@ model User {
   role          UserRole       @default(CUSTOMER)
   provider      AuthProvider   @default(GOOGLE)
   providerId    String?
+  passwordHash  String?
+  adminApprovalStatus AdminApprovalStatus @default(APPROVED)
+  adminRequestedAt DateTime?
+  adminApprovedAt DateTime?
+  adminApprovedByEmail String?
   isSuspended   Boolean        @default(false)
   lastActivity  DateTime?
   createdAt     DateTime       @default(now())
@@ -90,6 +103,7 @@ model User {
   couponUsages  CouponUsage[]
 
   @@index([role])
+  @@index([role, adminApprovalStatus])
   @@index([provider, providerId])
 }
 

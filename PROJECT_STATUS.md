@@ -2,7 +2,7 @@
 
 This document tracks completed implementation work and the setup steps the project owner needs to do locally. `TODO.md` remains the forward-looking task list; this file is the handoff/status record.
 
-Last updated: 2026-06-03
+Last updated: 2026-06-04
 
 ## Completed Work
 
@@ -87,10 +87,17 @@ Last updated: 2026-06-03
 - Added admin-protected order status update APIs and connected the admin orders page to real order data/status controls.
 - Added admin-protected OTP generation and verification APIs with hashed storage, expiry, attempt limits, and order completion on successful verification.
 - Added authenticated notifications APIs, Next.js proxies, and notification creation hooks for order, status, OTP, and completion events.
+- Added a customer navbar notifications popover with unread badges, latest order alerts, order-detail links, and mark-read actions.
+- Added food recommendation APIs with user-order/favorite personalization and popular-item fallback.
+- Connected recommendations to the menu page with personalized copy, recommendation reasons, and a recommendation-backed quick filter.
+- Made logged-out customer navigation public-only, routed add-to-cart/cart actions to login, and preserved the clicked item so it is added after Google login.
+- Added separate admin credentials auth with admin registration requests, pending approval state, a seeded super admin, and a super-admin approval page.
+- Added admin-protected analytics APIs for summary metrics, revenue trend, top foods, and live queue, plus a Next.js proxy/helper for admin UI consumption.
+- Fixed server-rendered order history and tracking pages so their internal API requests forward the logged-in user's Auth.js cookies.
 
 ## Current Next Task
 
-- Add recommendation APIs.
+- Connect admin dashboard to real analytics.
 
 ## Local Setup Steps For You
 
@@ -122,6 +129,13 @@ Last updated: 2026-06-03
    npm run db:generate
    npm run db:migrate
    npm run db:seed
+   ```
+
+   The seed creates the super admin:
+
+   ```text
+   email: crumbhouse2026@gmail.com
+   password: value of SUPER_ADMIN_PASSWORD, or CrumbHouse@2026 if unset
    ```
 
 7. Run the backend:
@@ -190,6 +204,16 @@ Last updated: 2026-06-03
 - After Google sign-in, the frontend calls `POST /api/v1/auth/google/sync` to upsert the customer profile and ensure a cart exists.
 - In production, `server/.env` must include `AUTH_SYNC_SECRET`; local development allows missing sync secret but will be less strict.
 
+## Admin Auth Setup Notes
+
+- Customer login remains Google-only at `/login`.
+- Admin login is separate at `/admin/login` and is not linked from customer navigation.
+- Admin registration creates a pending admin account. It cannot access admin pages until approved.
+- Super admin approval is available at `/admin/approvals` after signing in as `crumbhouse2026@gmail.com`.
+- Set `server/.env: SUPER_ADMIN_PASSWORD` before running `npm run db:seed` to avoid using the local fallback password.
+- Set `server/.env: ADMIN_APPROVAL_EMAIL=crumbhouse2026@gmail.com`.
+- Outgoing approval email delivery still needs SMTP or an email provider integration. Until that is configured, approval requests are persisted in the database, visible in `/admin/approvals`, and logged in the backend console.
+
 ## Known Notes And Caveats
 
 - The root `README.md` mentions a root `.env.example`, but this repo currently has `server/.env.example` and `client/.env.example`.
@@ -199,6 +223,7 @@ Last updated: 2026-06-03
 - Validation strategy: new request DTOs should use class-based DTOs with `class-validator` decorators. Existing manual parser DTOs remain valid for current endpoints and can be migrated feature-by-feature when those APIs are expanded.
 - Invoice PDF download is implemented as a generated backend PDF response. Cloud storage for persisted invoice PDFs is still a later infrastructure task.
 - Redis is optional for now and only needed once caching, queues, or rate limiting are wired.
+- If an order detail page says the order is missing, first confirm PostgreSQL and the backend are running, then verify the order belongs to the same Google account currently signed in.
 
 ## Verification Already Run
 

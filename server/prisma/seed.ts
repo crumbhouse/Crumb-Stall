@@ -1,4 +1,12 @@
-import { PrismaClient, UserRole, FoodType, CouponType } from '@prisma/client';
+import {
+  AdminApprovalStatus,
+  AuthProvider,
+  PrismaClient,
+  UserRole,
+  FoodType,
+  CouponType,
+} from '@prisma/client';
+import { randomBytes, scryptSync } from 'node:crypto';
 
 const prisma = new PrismaClient();
 
@@ -30,13 +38,49 @@ const categories = [
 ];
 
 async function main() {
+  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD ?? 'CrumbHouse@2026';
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'crumbhouse2026@gmail.com' },
+    update: {
+      name: 'Crumb House Super Admin',
+      role: UserRole.SUPER_ADMIN,
+      provider: AuthProvider.CREDENTIALS,
+      passwordHash: hashPassword(superAdminPassword),
+      adminApprovalStatus: AdminApprovalStatus.APPROVED,
+      adminApprovedAt: new Date(),
+      isSuspended: false,
+    },
+    create: {
+      email: 'crumbhouse2026@gmail.com',
+      name: 'Crumb House Super Admin',
+      role: UserRole.SUPER_ADMIN,
+      provider: AuthProvider.CREDENTIALS,
+      passwordHash: hashPassword(superAdminPassword),
+      adminApprovalStatus: AdminApprovalStatus.APPROVED,
+      adminApprovedAt: new Date(),
+    },
+  });
+
+  await prisma.cart.upsert({
+    where: { userId: superAdmin.id },
+    update: {},
+    create: { userId: superAdmin.id },
+  });
+
   const admin = await prisma.user.upsert({
     where: { email: 'admin@crumbstall.local' },
-    update: {},
+    update: {
+      adminApprovalStatus: AdminApprovalStatus.APPROVED,
+      adminApprovedAt: new Date(),
+      adminApprovedByEmail: superAdmin.email,
+    },
     create: {
       email: 'admin@crumbstall.local',
       name: 'Crumb Stall Admin',
       role: UserRole.ADMIN,
+      adminApprovalStatus: AdminApprovalStatus.APPROVED,
+      adminApprovedAt: new Date(),
+      adminApprovedByEmail: superAdmin.email,
     },
   });
 
@@ -173,3 +217,10 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
+
+function hashPassword(password: string) {
+  const salt = randomBytes(16).toString('hex');
+  const hash = scryptSync(password, salt, 64).toString('hex');
+
+  return `scrypt$${salt}$${hash}`;
+}

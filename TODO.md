@@ -70,12 +70,20 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add order status update APIs.
 - [x] Add OTP generation, hashing, expiry, attempts, and verification APIs.
 - [x] Add notifications APIs.
+- [x] Add customer notifications popover UI.
+- [x] Add recommendation APIs.
+- [x] Add customer recommendation section on the menu page.
+- [x] Make unauthenticated customer navigation and add-to-cart behavior explicit.
+- [x] Preserve clicked cart item across customer login.
+- [x] Add separate admin credentials login, registration request, and super-admin approval flow.
+- [x] Add analytics APIs.
+- [x] Fix server-rendered order history/tracking auth cookie forwarding.
 - [x] Verify client lint and build.
 - [x] Verify server tests and build after backend foundation work.
 
 ## Next Task
 
-- [ ] Add recommendation APIs.
+- [ ] Connect admin dashboard to real analytics.
 
 ## Customer Flow
 
@@ -93,6 +101,9 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add PDF invoice download.
 - [x] Add favorites persistence.
 - [x] Add purchased-item-only reviews.
+- [x] Add personalized recommendation strip on the menu page.
+- [x] Require login before cart actions while keeping menu browsing public.
+- [x] Add clicked item to cart after Google login completes.
 
 ## Backend APIs
 
@@ -111,13 +122,15 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add review APIs.
 - [x] Add favorites APIs.
 - [x] Add notifications APIs.
-- [ ] Add recommendation APIs.
-- [ ] Add analytics APIs.
+- [x] Add recommendation APIs.
+- [x] Add analytics APIs.
 - [ ] Add reports APIs.
 
 ## Admin Flow
 
 - [ ] Connect admin dashboard to real analytics.
+- [x] Add hidden admin credentials login and approval request flow.
+- [x] Add super-admin admin approval page.
 - [ ] Add category CRUD UI.
 - [ ] Add food item CRUD UI.
 - [ ] Add image upload flow for food images.

@@ -14,18 +14,27 @@ const links = [
   { href: "/admin/analytics", label: "Analytics" },
 ];
 
+const superAdminLinks = [{ href: "/admin/approvals", label: "Approvals" }];
+
 export async function AdminShell({ children }: { children: ReactNode }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
-    redirect("/login?callbackUrl=/admin");
+    redirect("/admin/login?callbackUrl=/admin");
+  }
+
+  if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") {
+    redirect("/admin/login?callbackUrl=/admin");
   }
 
   const hasAdminAccess = await verifyAdminAccess(session.user.email);
 
   if (!hasAdminAccess) {
-    redirect("/menu");
+    redirect("/admin/login?callbackUrl=/admin&error=AccessDenied");
   }
+
+  const visibleLinks =
+    session.user.role === "SUPER_ADMIN" ? [...links, ...superAdminLinks] : links;
 
   return (
     <main className="min-h-screen bg-stone-100 text-stone-950">
@@ -40,7 +49,7 @@ export async function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </Link>
         <nav className="mt-8 space-y-1">
-          {links.map((link) => (
+          {visibleLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}

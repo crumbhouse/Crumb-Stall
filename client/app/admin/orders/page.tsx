@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AdminOrderStatusControl } from "@/components/admin/admin-order-status-control";
 import { AdminShell } from "@/components/admin-shell";
-import { getAdminOrders } from "@/lib/admin-orders";
+import { getAdminOrders } from "@/lib/admin-orders-server";
 
 const statuses = [
   { value: "", label: "All statuses" },

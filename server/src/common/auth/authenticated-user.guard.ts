@@ -1,10 +1,12 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { AdminApprovalStatus, UserRole } from '@prisma/client';
 import { timingSafeEqual } from 'node:crypto';
 import { Request } from 'express';
 import { PrismaService } from '../../database/prisma.service';
@@ -37,12 +39,20 @@ export class AuthenticatedUserGuard implements CanActivate {
         name: true,
         imageUrl: true,
         role: true,
+        adminApprovalStatus: true,
         isSuspended: true,
       },
     });
 
     if (!user || user.isSuspended) {
       throw new UnauthorizedException('Customer session is invalid.');
+    }
+
+    if (
+      user.role === UserRole.ADMIN &&
+      user.adminApprovalStatus !== AdminApprovalStatus.APPROVED
+    ) {
+      throw new ForbiddenException('Admin access is pending approval.');
     }
 
     request.user = user;

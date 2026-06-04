@@ -8,7 +8,12 @@ export function AuthNavAction() {
 
   if (status === "loading") {
     return (
-      <span className="h-9 w-20 rounded-full bg-stone-100" aria-label="Loading session" />
+      <span
+        className="inline-flex h-10 min-w-16 items-center justify-center rounded-full bg-[#171717] px-3 text-sm font-bold text-white opacity-70 sm:min-w-20 sm:px-4"
+        aria-label="Loading session"
+      >
+        Login
+      </span>
     );
   }
 
@@ -16,7 +21,7 @@ export function AuthNavAction() {
     return (
       <Link
         href="/login"
-        className="rounded-full bg-[#171717] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#2b2b2b]"
+        className="inline-flex h-10 items-center rounded-full bg-[#171717] px-3 text-sm font-bold text-white transition hover:bg-[#2b2b2b] sm:px-4"
       >
         Login
       </Link>
@@ -42,7 +47,7 @@ export function AuthNavAction() {
       <button
         type="button"
         onClick={() => signOut({ callbackUrl: "/menu" })}
-        className="rounded-full border border-stone-200 px-4 py-2 text-sm font-bold text-[#171717] transition hover:bg-stone-50"
+        className="hidden rounded-full border border-stone-200 px-4 py-2 text-sm font-bold text-[#171717] transition hover:bg-stone-50 sm:inline-flex"
       >
         Sign out
       </button>

@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 import type { FoodItem } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
+import { savePendingCartItem } from "@/lib/pending-cart-item";
 
 export function AddToCartButton({
   item,
@@ -12,10 +15,12 @@ export function AddToCartButton({
   className?: string;
   children?: React.ReactNode;
 }) {
+  const { status } = useSession();
   const { addItem, decreaseItem, increaseItem, getQuantity } = useCart();
+  const isAuthenticated = status === "authenticated";
   const quantity = getQuantity(item.id);
 
-  if (quantity > 0) {
+  if (isAuthenticated && quantity > 0) {
     return (
       <div className="inline-flex items-center rounded-md border border-[#e8e8e3] bg-white shadow-sm">
         <button
@@ -38,6 +43,21 @@ export function AddToCartButton({
           +
         </button>
       </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <Link
+        href="/login?callbackUrl=/menu"
+        onClick={() => savePendingCartItem(item)}
+        className={
+          className ??
+          "rounded-md bg-[#e23744] px-4 py-2 text-sm font-black text-white transition hover:bg-[#b91c2b]"
+        }
+      >
+        {children}
+      </Link>
     );
   }
 

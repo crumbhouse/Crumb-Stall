@@ -3,12 +3,14 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useSession } from "next-auth/react";
 import { CustomerNav } from "@/components/customer-nav";
 import { MobileBar } from "@/components/mobile-bar";
 import { getFoodImageUrl } from "@/lib/catalog";
 import { useCart } from "@/lib/cart";
 
 export default function CartPage() {
+  const { status } = useSession();
   const {
     items,
     itemCount,
@@ -32,6 +34,8 @@ export default function CartPage() {
     await applyCoupon(couponCode);
   }
 
+  const isAuthenticated = status === "authenticated";
+
   return (
     <main className="min-h-screen bg-[#f6f6f4] pb-24 text-[#171717]">
       <CustomerNav />
@@ -40,7 +44,20 @@ export default function CartPage() {
           <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">Cart</p>
           <h1 className="mt-2 text-3xl font-black">Review your order</h1>
 
-          {items.length === 0 ? (
+          {!isAuthenticated ? (
+            <div className="mt-6 rounded-lg border border-dashed border-[#d7d7cf] bg-white p-8 text-center">
+              <p className="text-2xl font-black">Login to start your cart</p>
+              <p className="mt-2 text-sm font-semibold text-[#646464]">
+                We keep every order tied to a real account, so please login before adding food.
+              </p>
+              <Link
+                href="/login?callbackUrl=/menu"
+                className="mt-6 inline-flex rounded-md bg-[#e23744] px-5 py-3 font-black text-white"
+              >
+                Login and order
+              </Link>
+            </div>
+          ) : items.length === 0 ? (
             <div className="mt-6 rounded-lg border border-dashed border-[#d7d7cf] bg-white p-8 text-center">
               <p className="text-2xl font-black">Your cart is empty</p>
               <p className="mt-2 text-sm font-semibold text-[#646464]">

@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+
 export type OrderTimelineStep = {
   status: string;
   label: string;
@@ -88,6 +90,7 @@ export async function getRecentOrders({
   try {
     const response = await fetch(`${getAppUrl()}/api/orders?${params.toString()}`, {
       cache: "no-store",
+      headers: await getSessionForwardingHeaders(),
     });
 
     if (!response.ok) {
@@ -138,6 +141,7 @@ export async function getOrderDetail(orderNumber: string): Promise<OrderDetail |
   try {
     const response = await fetch(`${getAppUrl()}/api/orders/${encodeURIComponent(orderNumber)}`, {
       cache: "no-store",
+      headers: await getSessionForwardingHeaders(),
     });
 
     if (!response.ok) {
@@ -152,4 +156,10 @@ export async function getOrderDetail(orderNumber: string): Promise<OrderDetail |
 
 function getAppUrl() {
   return process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+}
+
+async function getSessionForwardingHeaders() {
+  const cookieHeader = (await cookies()).toString();
+
+  return cookieHeader ? { Cookie: cookieHeader } : undefined;
 }

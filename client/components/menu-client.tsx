@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { CartSummaryBar } from "@/components/cart-summary-bar";
 import { CustomerNav } from "@/components/customer-nav";
 import { FoodCard } from "@/components/food-card";
 import { MobileBar } from "@/components/mobile-bar";
 import { getFoodImageUrl, type Category, type FoodItem } from "@/lib/catalog";
+import { useCart } from "@/lib/cart";
 import { getFavoriteIds } from "@/lib/favorites";
+import { consumePendingCartItem } from "@/lib/pending-cart-item";
+import type { RecommendedFoodItem } from "@/lib/recommendations";
 
 type ActiveFilter = "all" | "recommended" | "combos" | "under-100" | "top-rated" | "veg";
 
@@ -21,12 +25,21 @@ const quickFilters: Array<{ id: ActiveFilter; label: string }> = [
 ];
 
 export function MenuClient({ categories, foods }: { categories: Category[]; foods: FoodItem[] }) {
+  const { status } = useSession();
+  const { addItem } = useCart();
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
   const [favoriteSlugs, setFavoriteSlugs] = useState<string[]>([]);
+  const [recommendations, setRecommendations] = useState<RecommendedFoodItem[]>([]);
+  const [recommendationsPersonalized, setRecommendationsPersonalized] = useState(false);
 
   const featured = foods.filter((item) => item.isFeatured);
+  const recommendedSlugs = useMemo(
+    () => new Set(recommendations.map((item) => item.slug)),
+    [recommendations],
+  );
+  const recommendationItems = recommendations.length > 0 ? recommendations : featured;
   const combo = foods.find((item) => item.slug === "burger-coffee-combo") ?? featured[0];
   const comboImageUrl = combo ? getFoodImageUrl(combo) : null;
 
@@ -52,7 +65,8 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
 
       const matchesQuickFilter =
         activeFilter === "all" ||
-        (activeFilter === "recommended" && item.isFeatured) ||
+        (activeFilter === "recommended" &&
+          (recommendedSlugs.size > 0 ? recommendedSlugs.has(item.slug) : item.isFeatured)) ||
         (activeFilter === "combos" && item.category.slug === "combos") ||
         (activeFilter === "under-100" && item.finalPrice <= 100) ||
         (activeFilter === "top-rated" && item.ratingAverage >= 4.5) ||
@@ -60,7 +74,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
 
       return matchesSearch && matchesCategory && matchesQuickFilter;
     });
-  }, [activeCategory, activeFilter, foods, query]);
+  }, [activeCategory, activeFilter, foods, query, recommendedSlugs]);
 
   const hasActiveFilters = query.trim() !== "" || activeCategory !== "all" || activeFilter !== "all";
   const activeCategoryName =
@@ -76,6 +90,54 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
         setFavoriteSlugs(favorites.slugs);
       }
     });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (status !== "authenticated") {
+      return;
+    }
+
+    const pendingItem = consumePendingCartItem();
+
+    if (pendingItem) {
+      addItem(pendingItem);
+    }
+  }, [addItem, status]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetch("/api/recommendations/foods?limit=4", {
+      cache: "no-store",
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return null;
+        }
+
+        return response.json() as Promise<{
+          data?: RecommendedFoodItem[];
+          meta?: { personalized?: boolean };
+        }>;
+      })
+      .then((payload) => {
+        if (!isMounted || !payload) {
+          return;
+        }
+
+        setRecommendations(payload.data ?? []);
+        setRecommendationsPersonalized(Boolean(payload.meta?.personalized));
+      })
+      .catch(() => {
+        if (isMounted) {
+          setRecommendations([]);
+          setRecommendationsPersonalized(false);
+        }
+      });
 
     return () => {
       isMounted = false;
@@ -284,22 +346,30 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
-                Recommended
+                {recommendationsPersonalized ? "Recommended for you" : "Popular picks"}
               </p>
-              <h2 className="mt-1 text-2xl font-black">Popular right now</h2>
+              <h2 className="mt-1 text-2xl font-black">
+                {recommendationsPersonalized ? "Based on your recent orders" : "Popular right now"}
+              </h2>
             </div>
             <a href="#all-items" className="hidden text-sm font-black text-[#e23744] sm:block">
               See full menu
             </a>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {featured.map((item) => (
-              <FoodCard
-                key={item.id}
-                item={item}
-                isFavorite={favoriteSlugs.includes(item.slug)}
-                onFavoriteChange={handleFavoriteChange}
-              />
+            {recommendationItems.map((item) => (
+              <div key={item.id} className="space-y-2">
+                {hasRecommendationReason(item) ? (
+                  <p className="rounded-md bg-white px-3 py-2 text-xs font-black text-[#b91c2b] shadow-sm">
+                    {item.recommendationReason}
+                  </p>
+                ) : null}
+                <FoodCard
+                  item={item}
+                  isFavorite={favoriteSlugs.includes(item.slug)}
+                  onFavoriteChange={handleFavoriteChange}
+                />
+              </div>
             ))}
           </div>
         </section>
@@ -352,4 +422,8 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
       <MobileBar />
     </main>
   );
+}
+
+function hasRecommendationReason(item: FoodItem): item is RecommendedFoodItem {
+  return "recommendationReason" in item && typeof item.recommendationReason === "string";
 }
