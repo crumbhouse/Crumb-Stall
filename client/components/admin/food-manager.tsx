@@ -6,6 +6,7 @@ import {
   createAdminFood,
   deactivateAdminFood,
   updateAdminFood,
+  uploadFoodImage,
   type AdminFoodItem,
   type FoodItemInput,
 } from "@/lib/admin-foods";
@@ -124,6 +125,34 @@ function FoodRow({
     });
   }
 
+  function toggleAvailability() {
+    setMessage("");
+
+    startTransition(async () => {
+      try {
+        await updateAdminFood(food.id, { isAvailable: !food.isAvailable });
+        setMessage(food.isAvailable ? "Hidden from menu" : "Back on menu");
+        router.refresh();
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "Availability update failed");
+      }
+    });
+  }
+
+  function toggleFeatured() {
+    setMessage("");
+
+    startTransition(async () => {
+      try {
+        await updateAdminFood(food.id, { isFeatured: !food.isFeatured });
+        setMessage(food.isFeatured ? "Removed from featured" : "Marked featured");
+        router.refresh();
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "Featured update failed");
+      }
+    });
+  }
+
   function deactivateFood() {
     setMessage("");
 
@@ -169,6 +198,26 @@ function FoodRow({
         </button>
         <button
           type="button"
+          onClick={toggleAvailability}
+          disabled={isPending}
+          className={`rounded-md px-4 py-2 text-sm font-black disabled:opacity-50 ${
+            food.isAvailable
+              ? "bg-red-50 text-red-700"
+              : "bg-green-50 text-green-700"
+          }`}
+        >
+          {food.isAvailable ? "Hide from menu" : "Set available"}
+        </button>
+        <button
+          type="button"
+          onClick={toggleFeatured}
+          disabled={isPending}
+          className="rounded-md bg-orange-50 px-4 py-2 text-sm font-black text-orange-700 disabled:opacity-50"
+        >
+          {food.isFeatured ? "Unfeature" : "Feature"}
+        </button>
+        <button
+          type="button"
           onClick={deactivateFood}
           disabled={isPending || !food.isAvailable}
           className="rounded-md bg-stone-100 px-4 py-2 text-sm font-black text-stone-700 disabled:opacity-50"
@@ -188,6 +237,29 @@ function FoodFields({
   categories: AdminCategory[];
   food?: AdminFoodItem;
 }) {
+  const [imageUrl, setImageUrl] = useState(food?.imageUrl ?? "");
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  async function uploadImage(file: File | undefined) {
+    if (!file) {
+      return;
+    }
+
+    setUploadMessage("");
+    setIsUploading(true);
+
+    try {
+      const payload = await uploadFoodImage(file);
+      setImageUrl(payload.imageUrl);
+      setUploadMessage("Image uploaded");
+    } catch (error) {
+      setUploadMessage(error instanceof Error ? error.message : "Food image upload failed");
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   return (
     <div className="grid gap-3">
       <label className="grid gap-1 text-sm font-black">
@@ -262,11 +334,46 @@ function FoodFields({
         Image URL
         <input
           name="imageUrl"
-          defaultValue={food?.imageUrl ?? ""}
+          value={imageUrl}
+          onChange={(event) => setImageUrl(event.target.value)}
           placeholder="https://..."
           className="rounded-md border border-stone-200 px-3 py-2 font-semibold outline-none focus:border-orange-600"
         />
       </label>
+      <div className="grid gap-2 rounded-md border border-dashed border-stone-200 bg-stone-50 p-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={(event) => void uploadImage(event.target.files?.[0])}
+            className="min-w-0 text-sm font-bold text-stone-600 file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-black file:text-stone-900"
+          />
+          <span className="text-xs font-bold text-stone-500">
+            JPG, PNG, or WebP up to 5MB
+          </span>
+        </div>
+        {imageUrl ? (
+          <div className="flex items-center gap-3">
+            <img
+              src={imageUrl}
+              alt="Food preview"
+              className="size-16 rounded-md object-cover ring-1 ring-stone-200"
+            />
+            <button
+              type="button"
+              onClick={() => setImageUrl("")}
+              className="rounded-md bg-white px-3 py-2 text-xs font-black text-stone-700 ring-1 ring-stone-200"
+            >
+              Clear image
+            </button>
+          </div>
+        ) : null}
+        {isUploading || uploadMessage ? (
+          <p className="text-xs font-black text-orange-700">
+            {isUploading ? "Uploading..." : uploadMessage}
+          </p>
+        ) : null}
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="grid gap-1 text-sm font-black">
           Type

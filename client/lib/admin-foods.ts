@@ -18,6 +18,8 @@ export type FoodItemInput = {
   isFeatured?: boolean;
 };
 
+export type FoodItemUpdateInput = Partial<FoodItemInput>;
+
 export async function createAdminFood(input: FoodItemInput) {
   const response = await fetch("/api/admin/foods", {
     method: "POST",
@@ -32,7 +34,7 @@ export async function createAdminFood(input: FoodItemInput) {
   return (await response.json()) as AdminFoodItem;
 }
 
-export async function updateAdminFood(foodItemId: string, input: FoodItemInput) {
+export async function updateAdminFood(foodItemId: string, input: FoodItemUpdateInput) {
   const response = await fetch(`/api/admin/foods/${encodeURIComponent(foodItemId)}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -56,6 +58,22 @@ export async function deactivateAdminFood(foodItemId: string) {
   }
 
   return (await response.json()) as AdminFoodItem;
+}
+
+export async function uploadFoodImage(file: File) {
+  const formData = new FormData();
+  formData.set("file", file);
+
+  const response = await fetch("/api/admin/uploads/food-image", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Food image upload failed"));
+  }
+
+  return (await response.json()) as { imageUrl: string };
 }
 
 async function readErrorMessage(response: Response, fallback: string) {

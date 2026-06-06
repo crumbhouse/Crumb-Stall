@@ -104,10 +104,12 @@ Last updated: 2026-06-06
 - Completed the current `bug.txt` pass: upgraded invoice PDF styling, added customer order live refresh, tightened notification polling, clarified ready/OTP handover, added admin order detail pages, redesigned admin login, added pending-payment detail recovery, and introduced 401/403/404 route handling.
 - Added admin category management with protected backend create/update/deactivate APIs, Next.js admin proxies, and a real `/admin/menu` category CRUD UI.
 - Added admin food item management with protected backend create/update/deactivate APIs, Next.js admin proxies, and `/admin/menu` food item CRUD for category, pricing, image URL, tags, ingredients, veg/non-veg, featured, popularity, and availability.
+- Added a local admin food-image upload flow. Admins can upload JPG, PNG, or WebP images up to 5MB from `/admin/menu`; files are stored under `client/public/uploads/foods` and the returned `/uploads/foods/...` URL is saved on the food item. Cloudflare R2 remains the later production storage task.
+- Added quick admin menu operations for item availability/inventory state and featured placement. Staff can hide/show items from the customer menu and feature/unfeature items without saving the full food form.
 
 ## Current Next Task
 
-- Add image upload flow for food images.
+- Add order management with status updates.
 
 ## Local Setup Steps For You
 

@@ -228,3 +228,22 @@ Status: Addressed with admin SSE live updates. Admin order list/detail pages now
 making the older one invalid unless the order is complete.
 
 Status: Addressed. Expired OTP verification now automatically generates a fresh pickup OTP for the same ready order, invalidating the old code and notifying the customer. Admin handover now also has a "Generate new OTP" action that force-refreshes the code even when the current OTP is still active, guarantees the visible code changes, includes order status in the notification metadata, and emits a customer/admin live order update so the customer order page refreshes and shows the new OTP.
+
+
+New bugs: 
+
+1. I see the following error in the frontend logs:
+
+ Error: failed to pipe response
+    at ignore-listed frames {
+  [cause]: TypeError: terminated
+      at ignore-listed frames {
+    [cause]: Error [BodyTimeoutError]: Body Timeout Error
+        at ignore-listed frames {
+      code: 'UND_ERR_BODY_TIMEOUT'
+    }
+  }
+}
+ GET /api/live/customer 500 in 5.0min (next.js: 1328µs, application-code: 5.0min)
+ GET /api/live/customer 500 in 5.0min (next.js: 35ms, application-code: 5.0min)
+
