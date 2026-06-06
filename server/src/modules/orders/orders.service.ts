@@ -1008,7 +1008,15 @@ export class OrdersService {
     let order = await this.prisma.order.findUnique({
       where: { orderNumber },
       include: {
-        items: true,
+        items: {
+          include: {
+            foodItem: {
+              select: {
+                slug: true,
+              },
+            },
+          },
+        },
         payments: {
           orderBy: { createdAt: 'desc' },
         },
@@ -1033,6 +1041,10 @@ export class OrdersService {
       order;
 
     const pickupOtp = await this.otpService.getDisplayOtpForOrder(order);
+    const reviewRating = await this.getOrderReviewRating(
+      customer.id,
+      order.items.map((item) => item.foodItemId),
+    );
 
     return {
       id: order.id,
@@ -1048,6 +1060,7 @@ export class OrdersService {
       discountAmount: order.discountAmount.toNumber(),
       totalAmount: order.totalAmount.toNumber(),
       couponCode: order.coupon?.code ?? null,
+      reviewRating,
       pickupOtp,
       payment: getDisplayPayment(order.payments)
         ? {
@@ -1059,6 +1072,8 @@ export class OrdersService {
         : null,
       items: order.items.map((item) => ({
         id: item.id,
+        foodItemId: item.foodItemId,
+        slug: item.foodItem.slug,
         name: item.name,
         note: item.note,
         quantity: item.quantity,
@@ -1463,7 +1478,15 @@ export class OrdersService {
         return this.prisma.order.findUnique({
           where: { id: order.id },
           include: {
-            items: true,
+            items: {
+              include: {
+                foodItem: {
+                  select: {
+                    slug: true,
+                  },
+                },
+              },
+            },
             payments: {
               orderBy: { createdAt: 'desc' },
             },
@@ -1490,6 +1513,33 @@ export class OrdersService {
     }
 
     return null;
+  }
+
+  private async getOrderReviewRating(userId: string, foodItemIds: string[]) {
+    const uniqueFoodItemIds = Array.from(new Set(foodItemIds));
+
+    if (uniqueFoodItemIds.length === 0) {
+      return null;
+    }
+
+    const reviews = await this.prisma.review.findMany({
+      where: {
+        userId,
+        foodItemId: { in: uniqueFoodItemIds },
+      },
+      select: {
+        rating: true,
+      },
+    });
+
+    if (reviews.length === 0) {
+      return null;
+    }
+
+    const average =
+      reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+
+    return Math.round(average);
   }
 
   private async resolveOrderReader(

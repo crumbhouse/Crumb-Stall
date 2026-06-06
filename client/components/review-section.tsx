@@ -1,37 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { submitFoodReview, type FoodReviews } from "@/lib/reviews";
+import Link from "next/link";
+import type { FoodReviews } from "@/lib/reviews";
 
 export function ReviewSection({
-  slug,
   initialReviews,
 }: {
-  slug: string;
   initialReviews: FoodReviews;
 }) {
-  const [reviews, setReviews] = useState(initialReviews);
-  const [rating, setRating] = useState(initialReviews.myReview?.rating ?? 5);
-  const [comment, setComment] = useState(initialReviews.myReview?.comment ?? "");
-  const [message, setMessage] = useState("");
-  const [isPending, startTransition] = useTransition();
-
-  function submitReview() {
-    setMessage("");
-
-    startTransition(async () => {
-      try {
-        const updatedReviews = await submitFoodReview({ slug, rating, comment });
-        setReviews(updatedReviews);
-        setMessage("Review saved. Thanks for the signal.");
-      } catch {
-        setMessage("Only purchased items can be reviewed.");
-      }
-    });
-  }
+  const reviews = initialReviews;
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-10 sm:px-6 lg:px-8">
+    <section id="reviews" className="mx-auto max-w-7xl scroll-mt-24 px-4 pb-10 sm:px-6 lg:px-8">
       <div className="rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
@@ -51,54 +31,26 @@ export function ReviewSection({
         <div className="mt-5 rounded-lg bg-[#f9f9f7] p-4">
           {reviews.canReview ? (
             <div>
-              <p className="font-black">
-                {reviews.myReview ? "Update your review" : "Review your purchase"}
+              <p className="font-black">Rate from your order page.</p>
+              <p className="mt-1 text-sm font-semibold text-[#646464]">
+                Crumb Stall uses one star rating per order. That rating is applied to every item in
+                the order.
               </p>
-              <div className="mt-3 flex gap-2">
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setRating(value)}
-                    className={`size-10 rounded-md text-lg font-black ${
-                      rating >= value
-                        ? "bg-[#e23744] text-white"
-                        : "bg-white text-[#8b8b8b]"
-                    }`}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
-              <label htmlFor="review-comment" className="sr-only">
-                Review comment
-              </label>
-              <textarea
-                id="review-comment"
-                value={comment}
-                onChange={(event) => setComment(event.target.value)}
-                maxLength={500}
-                className="mt-3 min-h-24 w-full rounded-md border border-[#e8e8e3] bg-white p-3 text-sm font-semibold outline-none focus:border-[#e23744]"
-                placeholder="What should other students know about this item?"
-              />
-              <button
-                type="button"
-                onClick={submitReview}
-                disabled={isPending}
-                className="mt-3 rounded-md bg-[#171717] px-5 py-3 text-sm font-black text-white disabled:opacity-60"
+              <Link
+                href="/orders"
+                className="mt-3 inline-flex rounded-md bg-[#171717] px-5 py-3 text-sm font-black text-white"
               >
-                {isPending ? "Saving..." : "Save review"}
-              </button>
+                Open orders
+              </Link>
             </div>
           ) : (
             <div>
-              <p className="font-black">Buy it first, then review it.</p>
+              <p className="font-black">Buy it first, then rate the order.</p>
               <p className="mt-1 text-sm font-semibold text-[#646464]">
-                Reviews are only open for items found in your paid order history.
+                Star ratings are available on paid order detail pages.
               </p>
             </div>
           )}
-          {message ? <p className="mt-3 text-sm font-black text-[#e23744]">{message}</p> : null}
         </div>
 
         <div className="mt-5 space-y-3">

@@ -11,6 +11,7 @@ const links = [
   { href: "/admin/menu", label: "Menu" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/coupons", label: "Coupons" },
+  { href: "/admin/reviews", label: "Reviews" },
   { href: "/admin/analytics", label: "Analytics" },
 ];
 

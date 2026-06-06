@@ -22,6 +22,7 @@ export type OrderDetail = {
   discountAmount: number;
   totalAmount: number;
   couponCode: string | null;
+  reviewRating: number | null;
   pickupOtp: {
     code: string;
     expiresAt: string;
@@ -35,6 +36,8 @@ export type OrderDetail = {
   } | null;
   items: Array<{
     id: string;
+    foodItemId?: string;
+    slug?: string | null;
     name: string;
     note: string | null;
     quantity: number;

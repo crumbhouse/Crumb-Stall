@@ -256,3 +256,7 @@ Status: Addressed. Category selection no longer counts as the kind of filter tha
 3. In the admin order management page, placed orders still show as placed but there is no option to change the status.
 
 Status: Addressed. The admin status control now falls back to the known valid transitions for `PAID`/`PLACED` orders when the API sends an empty transition list, so placed orders can be moved to `Preparing` or `Cancelled`.
+
+4. Clicking the customer order item Review button opens an item-not-found page.
+
+Status: Superseded by the order-level star rating flow. Customer orders no longer show per-item Review buttons; instead, a single star rating panel on the order detail page applies the chosen rating to every food item in that order.

@@ -77,7 +77,7 @@ Last updated: 2026-06-07
 - Added invoice view backed by backend invoice/order/payment data.
 - Added PDF invoice download from the invoice page.
 - Added persisted favorites with backend APIs and saved-item UI.
-- Added purchased-item-only reviews on food detail pages.
+- Added order-level star ratings for paid customer orders. A customer rates the order once, and the same rating is applied to every food item in that order for menu rating averages.
 - Added Swagger/OpenAPI documentation at `/api/docs` and JSON schema at `/api/docs-json`.
 - Added global Nest validation pipe with whitelist, transform, and unknown-field rejection.
 - Added Google OAuth/Auth.js integration on the client.
@@ -109,10 +109,11 @@ Last updated: 2026-06-07
 - Hardened admin order status management with per-order allowed transitions. Admins can move orders through valid operational steps only, terminal orders cannot be reopened manually, and completion remains OTP-only.
 - Simplified the active order flow by treating paid/placed orders as the same operational state. Admins now move paid/placed orders directly to preparing or cancelled; the separate confirmed step remains supported only for legacy orders already in that state.
 - Added admin coupon management with protected backend list/create/update/deactivate APIs, Next.js admin proxies, and a real `/admin/coupons` CRUD UI for code, discount type/value, minimum amount, validity window, usage limit, and active state.
+- Added review moderation with protected backend admin review list/update APIs, Next.js admin proxies, a `/admin/reviews` UI, and hide/restore actions that recalculate visible food ratings.
 
 ## Current Next Task
 
-- Add review moderation UI.
+- Add customer insights page.
 
 ## Local Setup Steps For You
 
@@ -240,7 +241,7 @@ Last updated: 2026-06-07
 - The root `README.md` mentions a root `.env.example`, but this repo currently has `server/.env.example` and `client/.env.example`.
 - Unauthenticated cart data remains client-local and is not represented by a database user.
 - Favorites require login and are persisted against the signed-in user.
-- Reviews require login for submission and are restricted to items found in the signed-in user's paid/placed-or-later order history.
+- Reviews require login for submission and are restricted to the signed-in user's paid/placed-or-later order history. Customers rate an order once, and that star rating is applied to all food items in the order.
 - Validation strategy: new request DTOs should use class-based DTOs with `class-validator` decorators. Existing manual parser DTOs remain valid for current endpoints and can be migrated feature-by-feature when those APIs are expanded.
 - Invoice PDF download is implemented as a generated backend PDF response. Cloud storage for persisted invoice PDFs is still a later infrastructure task.
 - Redis is optional for now and only needed once caching, queues, or rate limiting are wired.

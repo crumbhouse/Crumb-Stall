@@ -90,7 +90,7 @@ export default async function FoodDetailPage({ params }: { params: Promise<{ slu
           </Link>
         </aside>
       </section>
-      <ReviewSection slug={item.slug} initialReviews={reviews} />
+      <ReviewSection initialReviews={reviews} />
       <MobileBar />
     </main>
   );

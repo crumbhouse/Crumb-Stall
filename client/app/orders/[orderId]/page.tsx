@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CustomerNav } from "@/components/customer-nav";
 import { OrderLiveRefresh } from "@/components/order-live-refresh";
+import { OrderRatingPanel } from "@/components/order-rating-panel";
 import { getOrderDetail, type OrderDetail } from "@/lib/orders";
 
 const terminalStatuses = new Set(["COMPLETED", "CANCELLED", "REFUNDED"]);
@@ -101,6 +102,14 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
             )}
 
             <OrderItems order={order} />
+
+            {isReviewableOrder(order.status) ? (
+              <OrderRatingPanel
+                orderNumber={order.orderNumber}
+                initialRating={order.reviewRating}
+                itemCount={order.items.length}
+              />
+            ) : null}
           </div>
 
           <aside className="h-fit rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
@@ -151,21 +160,27 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
 function OrderItems({ order }: { order: OrderDetail }) {
   return (
     <div className="mt-6 rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
-      <h2 className="text-xl font-black">Items</h2>
+      <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+        <div>
+          <h2 className="text-xl font-black">Items</h2>
+        </div>
+      </div>
       <div className="mt-4 space-y-3">
         {order.items.map((item) => (
           <div key={item.id} className="text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="font-semibold text-[#555]">
-                {item.quantity} x {item.name}
-              </span>
+            <div className="flex flex-col justify-between gap-3 rounded-md bg-[#f9f9f7] p-3 sm:flex-row sm:items-center">
+              <div>
+                <p className="font-semibold text-[#555]">
+                  {item.quantity} x {item.name}
+                </p>
+                {item.note ? (
+                  <p className="mt-1 rounded-md bg-white px-2 py-1 text-xs font-semibold text-[#646464]">
+                    Note: {item.note}
+                  </p>
+                ) : null}
+              </div>
               <span className="font-black">Rs {item.totalPrice}</span>
             </div>
-            {item.note ? (
-              <p className="mt-1 rounded-md bg-[#f9f9f7] px-2 py-1 text-xs font-semibold text-[#646464]">
-                Note: {item.note}
-              </p>
-            ) : null}
           </div>
         ))}
       </div>
@@ -201,4 +216,8 @@ function formatPaymentStatus(status: string | undefined | null) {
 
 function formatOtp(code: string) {
   return `${code.slice(0, 3)} ${code.slice(3)}`;
+}
+
+function isReviewableOrder(status: string) {
+  return !["PENDING_PAYMENT", "CANCELLED", "REFUNDED"].includes(status);
 }

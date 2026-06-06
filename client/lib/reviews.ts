@@ -23,28 +23,30 @@ export async function getFoodReviews(slug: string): Promise<FoodReviews> {
   return fetchJson<FoodReviews>(`/reviews/foods/${encodeURIComponent(slug)}`, emptyReviews());
 }
 
-export async function submitFoodReview({
-  slug,
+export async function submitOrderRating({
+  orderNumber,
   rating,
-  comment,
 }: {
-  slug: string;
+  orderNumber: string;
   rating: number;
-  comment: string;
 }) {
-  const response = await fetch(`/api/reviews/foods/${encodeURIComponent(slug)}`, {
+  const response = await fetch(`/api/reviews/orders/${encodeURIComponent(orderNumber)}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ rating, comment }),
+    body: JSON.stringify({ rating }),
   });
 
   if (!response.ok) {
-    throw new Error("Review submission failed");
+    throw new Error("Order rating failed");
   }
 
-  return (await response.json()) as FoodReviews;
+  return (await response.json()) as {
+    orderNumber: string;
+    rating: number;
+    reviewedItemCount: number;
+  };
 }
 
 function emptyReviews(): FoodReviews {
