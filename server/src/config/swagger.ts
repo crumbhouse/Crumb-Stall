@@ -5,7 +5,9 @@ import { API_PREFIX } from '../common/constants/app.constants';
 export function setupSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
     .setTitle('Crumb Stall API')
-    .setDescription('API documentation for the Crumb Stall QR-first food ordering platform.')
+    .setDescription(
+      'API documentation for the Crumb Stall QR-first food ordering platform.',
+    )
     .setVersion('0.1.0')
     .addServer(`/${API_PREFIX}`, 'Versioned API')
     .build();

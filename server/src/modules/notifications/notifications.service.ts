@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { NotificationType, Prisma } from '@prisma/client';
+import { NotificationType, OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { LiveEventsService } from '../live/live-events.service';
 import { ListNotificationsQuery } from './dto/list-notifications-query.dto';
 
 type CreateNotificationInput = {
@@ -13,7 +14,10 @@ type CreateNotificationInput = {
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly liveEventsService: LiveEventsService,
+  ) {}
 
   async findForUser(userId: string, query: ListNotificationsQuery) {
     const where: Prisma.NotificationWhereInput = {
@@ -94,7 +98,17 @@ export class NotificationsService {
       data: input,
     });
 
-    return serializeNotification(notification);
+    const serializedNotification = serializeNotification(notification);
+    const metadata = getNotificationMetadata(serializedNotification.metadata);
+
+    this.liveEventsService.emitCustomerNotification({
+      userId: notification.userId,
+      notificationId: notification.id,
+      orderNumber: metadata.orderNumber,
+      status: metadata.status,
+    });
+
+    return serializedNotification;
   }
 }
 
@@ -116,4 +130,26 @@ function serializeNotification(notification: {
     metadata: notification.metadata,
     createdAt: notification.createdAt.toISOString(),
   };
+}
+
+function getNotificationMetadata(metadata: Prisma.JsonValue | null) {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return {};
+  }
+
+  const orderNumber =
+    typeof metadata.orderNumber === 'string' ? metadata.orderNumber : undefined;
+  const status =
+    typeof metadata.status === 'string' && isOrderStatus(metadata.status)
+      ? metadata.status
+      : undefined;
+
+  return {
+    orderNumber,
+    status,
+  };
+}
+
+function isOrderStatus(value: string): value is OrderStatus {
+  return Object.values(OrderStatus).includes(value as OrderStatus);
 }

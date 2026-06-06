@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Patch, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthenticatedUserGuard } from '../../common/auth/authenticated-user.guard';
 import type { AuthenticatedRequest } from '../../common/auth/authenticated-user.guard';
 import { parseListNotificationsQuery } from './dto/list-notifications-query.dto';
@@ -10,7 +18,10 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get()
-  findForUser(@Req() request: AuthenticatedRequest, @Query() query: Record<string, unknown>) {
+  findForUser(
+    @Req() request: AuthenticatedRequest,
+    @Query() query: Record<string, unknown>,
+  ) {
     return this.notificationsService.findForUser(
       request.user!.id,
       parseListNotificationsQuery(query),

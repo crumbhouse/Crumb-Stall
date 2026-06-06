@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { OrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
-import { AnalyticsLimitQuery, AnalyticsRangeQuery } from './dto/analytics-query.dto';
+import {
+  AnalyticsLimitQuery,
+  AnalyticsRangeQuery,
+} from './dto/analytics-query.dto';
 
 const revenueStatuses: OrderStatus[] = [
   OrderStatus.PAID,
@@ -28,7 +31,7 @@ const statusLabels: Record<OrderStatus, string> = {
   CONFIRMED: 'Confirmed',
   PREPARING: 'Preparing',
   READY_FOR_PICKUP: 'Ready for pickup',
-  OTP_VERIFICATION_PENDING: 'OTP pending',
+  OTP_VERIFICATION_PENDING: 'Ready for pickup',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
   REFUNDED: 'Refunded',
@@ -92,7 +95,8 @@ export class AnalyticsService {
       data: {
         revenueToday,
         ordersToday: todayOrders,
-        averageOrderValueToday: todayOrders > 0 ? Math.round(revenueToday / todayOrders) : 0,
+        averageOrderValueToday:
+          todayOrders > 0 ? Math.round(revenueToday / todayOrders) : 0,
         activeCustomersToday: activeCustomers.length,
         liveQueueCount,
         completedOrdersToday,
@@ -118,7 +122,10 @@ export class AnalyticsService {
       },
     });
 
-    const buckets = new Map<string, { date: string; revenue: number; orders: number }>();
+    const buckets = new Map<
+      string,
+      { date: string; revenue: number; orders: number }
+    >();
 
     for (let dayIndex = 0; dayIndex < query.days; dayIndex += 1) {
       const date = addDays(startsAt, dayIndex);
@@ -165,7 +172,12 @@ export class AnalyticsService {
 
     const totals = new Map<
       string,
-      { foodItemId: string; name: string; quantitySold: number; revenue: number }
+      {
+        foodItemId: string;
+        name: string;
+        quantitySold: number;
+        revenue: number;
+      }
     >();
 
     for (const item of items) {
@@ -185,7 +197,8 @@ export class AnalyticsService {
       data: [...totals.values()]
         .sort(
           (first, second) =>
-            second.quantitySold - first.quantitySold || second.revenue - first.revenue,
+            second.quantitySold - first.quantitySold ||
+            second.revenue - first.revenue,
         )
         .slice(0, query.limit),
       meta: {
@@ -236,7 +249,9 @@ export class AnalyticsService {
         pickupTime: order.pickupTime?.toISOString() ?? null,
         totalAmount: order.totalAmount.toNumber(),
         customer: order.user,
-        itemPreview: order.items.slice(0, 3).map((item) => `${item.quantity} x ${item.name}`),
+        itemPreview: order.items
+          .slice(0, 3)
+          .map((item) => `${item.quantity} x ${item.name}`),
       })),
       meta: {
         limit: query.limit,
@@ -244,7 +259,10 @@ export class AnalyticsService {
     };
   }
 
-  private revenueOrderWhere(startsAt: Date, endsAt: Date): Prisma.OrderWhereInput {
+  private revenueOrderWhere(
+    startsAt: Date,
+    endsAt: Date,
+  ): Prisma.OrderWhereInput {
     return {
       status: { in: revenueStatuses },
       OR: [

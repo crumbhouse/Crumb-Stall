@@ -47,8 +47,8 @@ describe('parseListFoodQuery', () => {
   });
 
   it('rejects invalid ranges', () => {
-    expect(() => parseListFoodQuery({ minPrice: '200', maxPrice: '100' })).toThrow(
-      BadRequestException,
-    );
+    expect(() =>
+      parseListFoodQuery({ minPrice: '200', maxPrice: '100' }),
+    ).toThrow(BadRequestException);
   });
 });

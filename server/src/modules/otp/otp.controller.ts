@@ -14,11 +14,16 @@ export class OtpController {
 
   @Post('generate')
   generate(@Param('orderNumber') orderNumber: string) {
-    return this.otpService.generateForOrderNumber(orderNumber);
+    return this.otpService.generateForOrderNumber(orderNumber, {
+      forceRefresh: true,
+    });
   }
 
   @Post('verify')
-  verify(@Param('orderNumber') orderNumber: string, @Body() body: VerifyOrderOtpDto) {
+  verify(
+    @Param('orderNumber') orderNumber: string,
+    @Body() body: VerifyOrderOtpDto,
+  ) {
     return this.otpService.verifyForOrderNumber(orderNumber, body.otp);
   }
 }

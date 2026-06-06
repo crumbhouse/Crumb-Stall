@@ -65,7 +65,9 @@ export class AuthenticatedUserGuard implements CanActivate {
 
     if (!expectedSecret) {
       if (process.env.NODE_ENV === 'production') {
-        throw new InternalServerErrorException('AUTH_SYNC_SECRET is not configured.');
+        throw new InternalServerErrorException(
+          'AUTH_SYNC_SECRET is not configured.',
+        );
       }
 
       return;

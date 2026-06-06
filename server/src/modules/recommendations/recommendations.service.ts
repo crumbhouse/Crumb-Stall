@@ -24,22 +24,36 @@ export class RecommendationsService {
       this.prisma.foodItem.findMany({
         where: { isAvailable: true },
         include: foodInclude,
-        orderBy: [{ popularity: 'desc' }, { ratingAverage: 'desc' }, { name: 'asc' }],
+        orderBy: [
+          { popularity: 'desc' },
+          { ratingAverage: 'desc' },
+          { name: 'asc' },
+        ],
       }),
       userId ? this.getUserSignals(userId) : null,
     ]);
 
     const purchasedFoodIds = new Set(userSignals?.purchasedFoodIds ?? []);
-    const categoryScores = userSignals?.categoryScores ?? new Map<string, number>();
+    const categoryScores =
+      userSignals?.categoryScores ?? new Map<string, number>();
     const tagScores = userSignals?.tagScores ?? new Map<string, number>();
 
     const rankedFoods = foods
       .map((food) => ({
         food,
-        score: this.scoreFood(food, purchasedFoodIds, categoryScores, tagScores),
+        score: this.scoreFood(
+          food,
+          purchasedFoodIds,
+          categoryScores,
+          tagScores,
+        ),
         reason: getReason(food, categoryScores, tagScores),
       }))
-      .sort((first, second) => second.score - first.score || first.food.name.localeCompare(second.food.name))
+      .sort(
+        (first, second) =>
+          second.score - first.score ||
+          first.food.name.localeCompare(second.food.name),
+      )
       .slice(0, query.limit);
 
     return {
@@ -49,7 +63,9 @@ export class RecommendationsService {
       })),
       meta: {
         limit: query.limit,
-        personalized: Boolean(userSignals && (categoryScores.size > 0 || tagScores.size > 0)),
+        personalized: Boolean(
+          userSignals && (categoryScores.size > 0 || tagScores.size > 0),
+        ),
       },
     };
   }

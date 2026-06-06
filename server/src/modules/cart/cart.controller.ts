@@ -20,7 +20,11 @@ export class CartController {
     @Headers('x-customer-email') customerEmail?: string,
     @Headers('x-auth-sync-secret') syncSecret?: string,
   ) {
-    return this.cartService.replaceForCustomer(input, customerEmail, syncSecret);
+    return this.cartService.replaceForCustomer(
+      input,
+      customerEmail,
+      syncSecret,
+    );
   }
 
   @Delete()

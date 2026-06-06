@@ -37,12 +37,13 @@ export function NotificationPopover() {
       return;
     }
 
-    void loadNotifications();
-    const timer = window.setInterval(() => {
+    void loadNotifications({ showLoading: true });
+    const liveEvents = new EventSource("/api/live/customer");
+    liveEvents.onmessage = () => {
       void loadNotifications();
-    }, 30000);
+    };
 
-    return () => window.clearInterval(timer);
+    return () => liveEvents.close();
   }, [isSignedIn]);
 
   const latestUnread = useMemo(
@@ -54,8 +55,10 @@ export function NotificationPopover() {
     return null;
   }
 
-  async function loadNotifications() {
-    setLoading(true);
+  async function loadNotifications({ showLoading = false }: { showLoading?: boolean } = {}) {
+    if (showLoading) {
+      setLoading(true);
+    }
 
     try {
       const response = await fetch("/api/notifications?limit=5", {
@@ -70,7 +73,9 @@ export function NotificationPopover() {
       setNotifications(payload.data ?? []);
       setUnreadCount(Number(payload.meta?.unreadCount) || 0);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }
 
@@ -114,14 +119,14 @@ export function NotificationPopover() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative shrink-0">
       <button
         type="button"
         onClick={() => {
           setOpen((current) => !current);
-          void loadNotifications();
+          void loadNotifications({ showLoading: true });
         }}
-        className="relative flex size-10 items-center justify-center rounded-full border border-[#e8e8e3] bg-white text-[#171717] transition hover:border-[#e23744] hover:text-[#e23744]"
+        className="relative flex size-10 shrink-0 items-center justify-center rounded-full border border-[#e8e8e3] bg-white text-[#171717] transition hover:border-[#e23744] hover:text-[#e23744]"
         aria-expanded={open}
         aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
       >

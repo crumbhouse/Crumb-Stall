@@ -17,7 +17,10 @@ describe('PaymentsService', () => {
     delete process.env.RAZORPAY_KEY_SECRET;
 
     const service = new PaymentsService();
-    const order = await service.createRazorpayOrder({ amount: 123, currency: 'INR' });
+    const order = await service.createRazorpayOrder({
+      amount: 123,
+      currency: 'INR',
+    });
 
     expect(order).toMatchObject({
       mode: 'mock',
@@ -84,7 +87,9 @@ describe('PaymentsService', () => {
 
     const service = new PaymentsService();
     const rawBody = Buffer.from(JSON.stringify({ event: 'payment.captured' }));
-    const signature = createHmac('sha256', 'webhook_secret').update(rawBody).digest('hex');
+    const signature = createHmac('sha256', 'webhook_secret')
+      .update(rawBody)
+      .digest('hex');
 
     expect(service.verifyWebhookSignature(rawBody, signature)).toBe(true);
   });
@@ -95,9 +100,9 @@ describe('PaymentsService', () => {
     const service = new PaymentsService();
     const rawBody = Buffer.from(JSON.stringify({ event: 'payment.captured' }));
 
-    expect(() => service.verifyWebhookSignature(rawBody, 'invalid_signature')).toThrow(
-      'Invalid Razorpay webhook signature.',
-    );
+    expect(() =>
+      service.verifyWebhookSignature(rawBody, 'invalid_signature'),
+    ).toThrow('Invalid Razorpay webhook signature.');
   });
 
   it('parses Razorpay webhook raw bodies', () => {

@@ -14,7 +14,7 @@ export function CustomerNav() {
   return (
     <header className="sticky top-0 z-30 border-b border-[#e8e8e3] bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-        <Link href="/menu" className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <Link href="/menu" className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none sm:gap-3">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#e23744] text-sm font-black text-white shadow-sm sm:size-10 sm:text-base">
             CS
           </span>
@@ -28,7 +28,7 @@ export function CustomerNav() {
 
         <CustomerNavLinks links={links} />
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center justify-end gap-2">
           <NotificationPopover />
           <AuthNavAction />
         </div>

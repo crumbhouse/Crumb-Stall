@@ -2,7 +2,10 @@ import type { Account, AuthOptions, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
+const apiUrl =
+  process.env.SERVER_API_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://localhost:3001/api/v1";
 
 export const authOptions: AuthOptions = {
   session: {

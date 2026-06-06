@@ -15,9 +15,14 @@ export class RecommendationsController {
     @Query() query: Record<string, unknown>,
     @Headers('x-customer-email') customerEmail?: string,
   ) {
-    const userId = customerEmail ? await this.findActiveUserId(customerEmail) : undefined;
+    const userId = customerEmail
+      ? await this.findActiveUserId(customerEmail)
+      : undefined;
 
-    return this.recommendationsService.findForUser(userId, parseRecommendationsQuery(query));
+    return this.recommendationsService.findForUser(
+      userId,
+      parseRecommendationsQuery(query),
+    );
   }
 
   private async findActiveUserId(email: string) {

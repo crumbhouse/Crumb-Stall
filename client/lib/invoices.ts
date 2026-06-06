@@ -34,10 +34,13 @@ export type InvoiceDetail = {
   } | null;
 };
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
+const apiUrl =
+  process.env.SERVER_API_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://localhost:3001/api/v1";
 
 export function getInvoicePdfUrl(invoiceNumber: string) {
-  return `${apiUrl}/invoices/${invoiceNumber}/pdf`;
+  return `/api/invoices/${encodeURIComponent(invoiceNumber)}/pdf`;
 }
 
 export async function getInvoice(invoiceNumber: string): Promise<InvoiceDetail | null> {

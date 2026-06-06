@@ -43,7 +43,11 @@ export class CartService {
     return this.serializeCart(cart);
   }
 
-  async replaceForCustomer(input: ReplaceCartDto, customerEmail?: string, syncSecret?: string) {
+  async replaceForCustomer(
+    input: ReplaceCartDto,
+    customerEmail?: string,
+    syncSecret?: string,
+  ) {
     const cart = await this.ensureCustomerCart(customerEmail, syncSecret);
     const uniqueItems = mergeDuplicateItems(input.items);
     const foodItemIds = uniqueItems.map((item) => item.foodItemId);
@@ -90,7 +94,10 @@ export class CartService {
     return this.serializeCart(await this.getCartById(cart.id));
   }
 
-  private async ensureCustomerCart(customerEmail?: string, syncSecret?: string) {
+  private async ensureCustomerCart(
+    customerEmail?: string,
+    syncSecret?: string,
+  ) {
     this.assertValidSyncSecret(syncSecret);
 
     if (!customerEmail) {
@@ -131,7 +138,9 @@ export class CartService {
 
     if (!expectedSecret) {
       if (process.env.NODE_ENV === 'production') {
-        throw new InternalServerErrorException('AUTH_SYNC_SECRET is not configured.');
+        throw new InternalServerErrorException(
+          'AUTH_SYNC_SECRET is not configured.',
+        );
       }
 
       return;

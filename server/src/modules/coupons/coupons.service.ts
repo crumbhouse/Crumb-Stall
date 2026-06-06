@@ -61,7 +61,9 @@ export class CouponsService {
     }
 
     if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
-      throw new BadRequestException(`${coupon.code} has reached its usage limit.`);
+      throw new BadRequestException(
+        `${coupon.code} has reached its usage limit.`,
+      );
     }
 
     return coupon;
@@ -71,7 +73,9 @@ export class CouponsService {
     const minimumAmount = coupon.minimumAmount.toNumber();
 
     if (subtotal < minimumAmount) {
-      throw new BadRequestException(`Add Rs ${minimumAmount - subtotal} more to use ${coupon.code}.`);
+      throw new BadRequestException(
+        `Add Rs ${minimumAmount - subtotal} more to use ${coupon.code}.`,
+      );
     }
 
     const value = coupon.value.toNumber();

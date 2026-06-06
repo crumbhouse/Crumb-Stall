@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { AuthenticatedUserGuard } from '../../common/auth/authenticated-user.guard';
 import { Roles } from '../../common/auth/roles.decorator';
@@ -75,6 +85,13 @@ export class OrdersController {
     return this.ordersService.findAdminOrders(parseListOrdersQuery(query));
   }
 
+  @Get('admin/:orderNumber')
+  @UseGuards(AuthenticatedUserGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  findAdminOrderByNumber(@Param('orderNumber') orderNumber: string) {
+    return this.ordersService.findAdminOrderByNumber(orderNumber);
+  }
+
   @Patch(':orderNumber/status')
   @UseGuards(AuthenticatedUserGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -91,6 +108,10 @@ export class OrdersController {
     @Headers('x-customer-email') customerEmail?: string,
     @Headers('x-auth-sync-secret') syncSecret?: string,
   ) {
-    return this.ordersService.findByOrderNumber(orderNumber, customerEmail, syncSecret);
+    return this.ordersService.findByOrderNumber(
+      orderNumber,
+      customerEmail,
+      syncSecret,
+    );
   }
 }

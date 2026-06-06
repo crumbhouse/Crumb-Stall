@@ -12,10 +12,13 @@ export function parseReviewInput(body: Record<string, unknown>): ReviewInput {
     throw new BadRequestException('Rating must be an integer from 1 to 5');
   }
 
-  const rawComment = typeof body.comment === 'string' ? body.comment.trim() : '';
+  const rawComment =
+    typeof body.comment === 'string' ? body.comment.trim() : '';
 
   if (rawComment.length > 500) {
-    throw new BadRequestException('Review comment must be 500 characters or fewer');
+    throw new BadRequestException(
+      'Review comment must be 500 characters or fewer',
+    );
   }
 
   return {

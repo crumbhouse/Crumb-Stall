@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Headers, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthenticatedUserGuard } from '../../common/auth/authenticated-user.guard';
 import type { AuthenticatedRequest } from '../../common/auth/authenticated-user.guard';
 import { parseReviewInput } from './dto/review-input.dto';
@@ -24,6 +33,10 @@ export class ReviewsController {
     @Body() body: Record<string, unknown>,
     @Req() request: AuthenticatedRequest,
   ) {
-    return this.reviewsService.upsertForFood(slug, parseReviewInput(body), request.user!.id);
+    return this.reviewsService.upsertForFood(
+      slug,
+      parseReviewInput(body),
+      request.user!.id,
+    );
   }
 }

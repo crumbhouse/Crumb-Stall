@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { CustomerNav } from "@/components/customer-nav";
 import { MobileBar } from "@/components/mobile-bar";
+import { OrderLiveRefresh } from "@/components/order-live-refresh";
+import { OrdersFilterForm } from "@/components/orders-filter-form";
 import { getRecentOrders } from "@/lib/orders";
 
 const statuses = [
@@ -31,6 +33,7 @@ export default async function OrdersPage({
 
   return (
     <main className="min-h-screen bg-[#f6f6f4] pb-20 text-[#171717]">
+      <OrderLiveRefresh />
       <CustomerNav />
       <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
@@ -48,36 +51,7 @@ export default async function OrdersPage({
           </Link>
         </div>
 
-        <form className="mt-6 grid gap-3 rounded-lg border border-[#e8e8e3] bg-white p-4 shadow-sm sm:grid-cols-[1fr_220px_auto]">
-          <label htmlFor="order-search" className="sr-only">
-            Search orders
-          </label>
-          <input
-            id="order-search"
-            name="search"
-            defaultValue={search}
-            placeholder="Search by order number or item"
-            className="rounded-md border border-[#e8e8e3] px-3 py-3 text-sm font-semibold outline-none focus:border-[#e23744]"
-          />
-          <label htmlFor="order-status" className="sr-only">
-            Status
-          </label>
-          <select
-            id="order-status"
-            name="status"
-            defaultValue={status}
-            className="rounded-md border border-[#e8e8e3] px-3 py-3 text-sm font-black outline-none focus:border-[#e23744]"
-          >
-            {statuses.map((option) => (
-              <option key={option.label} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <button className="rounded-md bg-[#171717] px-5 py-3 text-sm font-black text-white">
-            Filter
-          </button>
-        </form>
+        <OrdersFilterForm initialSearch={search} initialStatus={status} statuses={statuses} />
 
         {orders.length === 0 ? (
           <div className="mt-6 rounded-lg border border-dashed border-[#d7d7cf] bg-white p-8 text-center">

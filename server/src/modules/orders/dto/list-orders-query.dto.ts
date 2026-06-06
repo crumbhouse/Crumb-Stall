@@ -8,7 +8,9 @@ export type ListOrdersQuery = {
   search?: string;
 };
 
-export function parseListOrdersQuery(query: Record<string, unknown>): ListOrdersQuery {
+export function parseListOrdersQuery(
+  query: Record<string, unknown>,
+): ListOrdersQuery {
   return {
     page: parsePositiveInt(query.page, 'page', 1, 1, 500),
     limit: parsePositiveInt(query.limit, 'limit', 10, 1, 50),
@@ -25,7 +27,9 @@ function parseOrderStatus(value: unknown) {
   }
 
   if (!Object.values(OrderStatus).includes(status as OrderStatus)) {
-    throw new BadRequestException(`status must be one of: ${Object.values(OrderStatus).join(', ')}`);
+    throw new BadRequestException(
+      `status must be one of: ${Object.values(OrderStatus).join(', ')}`,
+    );
   }
 
   return status as OrderStatus;
@@ -53,8 +57,14 @@ function parsePositiveInt(
 
   const numberValue = Number(value);
 
-  if (!Number.isInteger(numberValue) || numberValue < min || numberValue > max) {
-    throw new BadRequestException(`${field} must be an integer from ${min} to ${max}`);
+  if (
+    !Number.isInteger(numberValue) ||
+    numberValue < min ||
+    numberValue > max
+  ) {
+    throw new BadRequestException(
+      `${field} must be an integer from ${min} to ${max}`,
+    );
   }
 
   return numberValue;

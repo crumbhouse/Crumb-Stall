@@ -1,9 +1,20 @@
 import { BadRequestException } from '@nestjs/common';
 import { FoodType, Prisma } from '@prisma/client';
 
-export type FoodSort = 'popular' | 'rating' | 'newest' | 'price_asc' | 'price_desc';
+export type FoodSort =
+  | 'popular'
+  | 'rating'
+  | 'newest'
+  | 'price_asc'
+  | 'price_desc';
 
-const SORTS = new Set<FoodSort>(['popular', 'rating', 'newest', 'price_asc', 'price_desc']);
+const SORTS = new Set<FoodSort>([
+  'popular',
+  'rating',
+  'newest',
+  'price_asc',
+  'price_desc',
+]);
 
 export type ListFoodQuery = {
   search?: string;
@@ -18,7 +29,9 @@ export type ListFoodQuery = {
   limit: number;
 };
 
-export function parseListFoodQuery(query: Record<string, unknown>): ListFoodQuery {
+export function parseListFoodQuery(
+  query: Record<string, unknown>,
+): ListFoodQuery {
   const page = parsePositiveInt(query.page, 'page', 1, 1, 500);
   const limit = parsePositiveInt(query.limit, 'limit', 12, 1, 50);
   const sort = parseSort(query.sort);
@@ -44,19 +57,35 @@ export function parseListFoodQuery(query: Record<string, unknown>): ListFoodQuer
   };
 }
 
-export function getFoodOrderBy(sort: FoodSort): Prisma.FoodItemOrderByWithRelationInput[] {
+export function getFoodOrderBy(
+  sort: FoodSort,
+): Prisma.FoodItemOrderByWithRelationInput[] {
   switch (sort) {
     case 'rating':
-      return [{ ratingAverage: 'desc' }, { ratingCount: 'desc' }, { name: 'asc' }];
+      return [
+        { ratingAverage: 'desc' },
+        { ratingCount: 'desc' },
+        { name: 'asc' },
+      ];
     case 'newest':
       return [{ createdAt: 'desc' }];
     case 'price_asc':
-      return [{ discountPrice: { sort: 'asc', nulls: 'last' } }, { price: 'asc' }];
+      return [
+        { discountPrice: { sort: 'asc', nulls: 'last' } },
+        { price: 'asc' },
+      ];
     case 'price_desc':
-      return [{ discountPrice: { sort: 'desc', nulls: 'last' } }, { price: 'desc' }];
+      return [
+        { discountPrice: { sort: 'desc', nulls: 'last' } },
+        { price: 'desc' },
+      ];
     case 'popular':
     default:
-      return [{ popularity: 'desc' }, { ratingAverage: 'desc' }, { name: 'asc' }];
+      return [
+        { popularity: 'desc' },
+        { ratingAverage: 'desc' },
+        { name: 'asc' },
+      ];
   }
 }
 
@@ -75,7 +104,9 @@ function parseSort(value: unknown): FoodSort {
   }
 
   if (!SORTS.has(value as FoodSort)) {
-    throw new BadRequestException(`sort must be one of: ${Array.from(SORTS).join(', ')}`);
+    throw new BadRequestException(
+      `sort must be one of: ${Array.from(SORTS).join(', ')}`,
+    );
   }
 
   return value as FoodSort;
@@ -138,8 +169,14 @@ function parsePositiveInt(
 
   const numberValue = Number(value);
 
-  if (!Number.isInteger(numberValue) || numberValue < min || numberValue > max) {
-    throw new BadRequestException(`${field} must be an integer from ${min} to ${max}`);
+  if (
+    !Number.isInteger(numberValue) ||
+    numberValue < min ||
+    numberValue > max
+  ) {
+    throw new BadRequestException(
+      `${field} must be an integer from ${min} to ${max}`,
+    );
   }
 
   return numberValue;

@@ -1,8 +1,16 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { NotificationType, OrderStatus } from '@prisma/client';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { OTP_EXPIRY_MINUTES, OTP_MAX_ATTEMPTS } from '../../common/constants/app.constants';
+import {
+  OTP_EXPIRY_MINUTES,
+  OTP_MAX_ATTEMPTS,
+} from '../../common/constants/app.constants';
 import { PrismaService } from '../../database/prisma.service';
+import { LiveEventsService } from '../live/live-events.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 type OtpOrder = {
@@ -14,10 +22,14 @@ type OtpOrder = {
 export class OtpService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly liveEventsService: LiveEventsService,
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async generateForOrderNumber(orderNumber: string) {
+  async generateForOrderNumber(
+    orderNumber: string,
+    options: { forceRefresh?: boolean } = {},
+  ) {
     const order = await this.prisma.order.findUnique({
       where: { orderNumber },
       select: {
@@ -35,10 +47,14 @@ export class OtpService {
       order.status !== OrderStatus.READY_FOR_PICKUP &&
       order.status !== OrderStatus.OTP_VERIFICATION_PENDING
     ) {
-      throw new BadRequestException('OTP can only be generated for ready pickup orders');
+      throw new BadRequestException(
+        'OTP can only be generated for ready pickup orders',
+      );
     }
 
-    const otp = await this.getDisplayOtpForOrder(order);
+    const otp = await this.getDisplayOtpForOrder(order, {
+      forceRefresh: options.forceRefresh,
+    });
 
     if (otp) {
       await this.notificationsService.create({
@@ -48,15 +64,29 @@ export class OtpService {
         message: `Your pickup OTP for order ${orderNumber} is ${otp.code}.`,
         metadata: {
           orderNumber,
+          status: order.status,
           expiresAt: otp.expiresAt,
         },
+      });
+
+      this.liveEventsService.emitCustomerOrderStatus({
+        userId: order.userId,
+        orderNumber,
+        status: order.status,
+      });
+      this.liveEventsService.emitAdminOrderUpdated({
+        orderNumber,
+        status: order.status,
       });
     }
 
     return otp;
   }
 
-  async getDisplayOtpForOrder(order: OtpOrder) {
+  async getDisplayOtpForOrder(
+    order: OtpOrder,
+    options: { forceRefresh?: boolean } = {},
+  ) {
     if (
       order.status !== OrderStatus.READY_FOR_PICKUP &&
       order.status !== OrderStatus.OTP_VERIFICATION_PENDING
@@ -69,7 +99,12 @@ export class OtpService {
       where: { orderId: order.id },
     });
 
-    if (existingOtp && !existingOtp.verifiedAt && existingOtp.expiresAt > now) {
+    if (
+      !options.forceRefresh &&
+      existingOtp &&
+      !existingOtp.verifiedAt &&
+      existingOtp.expiresAt > now
+    ) {
       return {
         code: deriveOtp(order.id, existingOtp.expiresAt),
         expiresAt: existingOtp.expiresAt.toISOString(),
@@ -77,8 +112,24 @@ export class OtpService {
       };
     }
 
-    const expiresAt = new Date(now.getTime() + OTP_EXPIRY_MINUTES * 60_000);
-    const code = deriveOtp(order.id, expiresAt);
+    const currentCode =
+      existingOtp && !existingOtp.verifiedAt
+        ? deriveOtp(order.id, existingOtp.expiresAt)
+        : null;
+    let expiresAt = new Date(now.getTime() + OTP_EXPIRY_MINUTES * 60_000);
+    let code = deriveOtp(order.id, expiresAt);
+
+    if (options.forceRefresh && currentCode) {
+      let offsetMs = 1;
+
+      while (code === currentCode) {
+        expiresAt = new Date(
+          now.getTime() + OTP_EXPIRY_MINUTES * 60_000 + offsetMs,
+        );
+        code = deriveOtp(order.id, expiresAt);
+        offsetMs += 1;
+      }
+    }
 
     const otp = await this.prisma.orderOtp.upsert({
       where: { orderId: order.id },
@@ -128,15 +179,23 @@ export class OtpService {
     });
 
     if (!orderOtp || orderOtp.verifiedAt) {
-      throw new BadRequestException('No active OTP is available for this order');
+      throw new BadRequestException(
+        'No active OTP is available for this order',
+      );
     }
 
     if (orderOtp.expiresAt <= new Date()) {
-      throw new BadRequestException('OTP has expired. Generate a new code.');
+      await this.generateForOrderNumber(orderNumber, { forceRefresh: true });
+
+      throw new BadRequestException(
+        'OTP expired. A new pickup OTP has been generated and sent to the customer.',
+      );
     }
 
     if (orderOtp.attemptCount >= OTP_MAX_ATTEMPTS) {
-      throw new BadRequestException('OTP attempt limit reached. Generate a new code.');
+      throw new BadRequestException(
+        'OTP attempt limit reached. Generate a new code.',
+      );
     }
 
     const isMatch = safeEqual(hashOtp(order.id, otp), orderOtp.otpHash);
@@ -182,6 +241,16 @@ export class OtpService {
       },
     });
 
+    this.liveEventsService.emitCustomerOrderStatus({
+      userId: order.userId,
+      orderNumber,
+      status: OrderStatus.COMPLETED,
+    });
+    this.liveEventsService.emitAdminOrderUpdated({
+      orderNumber,
+      status: OrderStatus.COMPLETED,
+    });
+
     return {
       verified: true,
       orderNumber,
@@ -202,11 +271,17 @@ function deriveOtp(orderId: string, expiresAt: Date) {
 }
 
 function hashOtp(orderId: string, otp: string) {
-  return createHmac('sha256', getOtpSecret()).update(`${orderId}:${otp}`).digest('hex');
+  return createHmac('sha256', getOtpSecret())
+    .update(`${orderId}:${otp}`)
+    .digest('hex');
 }
 
 function getOtpSecret() {
-  return process.env.OTP_SECRET ?? process.env.JWT_SECRET ?? 'crumbstall-dev-otp-secret';
+  return (
+    process.env.OTP_SECRET ??
+    process.env.JWT_SECRET ??
+    'crumbstall-dev-otp-secret'
+  );
 }
 
 function safeEqual(value: string, expected: string) {

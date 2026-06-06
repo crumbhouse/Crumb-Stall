@@ -22,7 +22,9 @@ export class AnalyticsController {
 
   @Get('revenue-trend')
   getRevenueTrend(@Query() query: Record<string, unknown>) {
-    return this.analyticsService.getRevenueTrend(parseAnalyticsRangeQuery(query));
+    return this.analyticsService.getRevenueTrend(
+      parseAnalyticsRangeQuery(query),
+    );
   }
 
   @Get('top-foods')

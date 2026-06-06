@@ -89,11 +89,10 @@ export class ReviewsService {
   }
 
   async upsertForFood(slug: string, input: ReviewInput, userId: string) {
-    const foodItem = await
-      this.prisma.foodItem.findUnique({
-        where: { slug },
-        select: { id: true },
-      });
+    const foodItem = await this.prisma.foodItem.findUnique({
+      where: { slug },
+      select: { id: true },
+    });
 
     if (!foodItem) {
       throw new NotFoundException('Food item not found');
@@ -108,7 +107,7 @@ export class ReviewsService {
     await this.prisma.$transaction(async (tx) => {
       await tx.review.upsert({
         where: {
-            userId_foodItemId: {
+          userId_foodItemId: {
             userId,
             foodItemId: foodItem.id,
           },
@@ -138,7 +137,9 @@ export class ReviewsService {
       await tx.foodItem.update({
         where: { id: foodItem.id },
         data: {
-          ratingAverage: new Prisma.Decimal((aggregate._avg.rating ?? 0).toFixed(2)),
+          ratingAverage: new Prisma.Decimal(
+            (aggregate._avg.rating ?? 0).toFixed(2),
+          ),
           ratingCount: aggregate._count.rating,
         },
       });
@@ -171,7 +172,10 @@ export class ReviewsService {
     return this.findForFood(slug, user?.email, process.env.AUTH_SYNC_SECRET);
   }
 
-  private async resolveOptionalUser(customerEmail?: string, syncSecret?: string) {
+  private async resolveOptionalUser(
+    customerEmail?: string,
+    syncSecret?: string,
+  ) {
     if (!customerEmail) {
       return null;
     }
@@ -198,7 +202,9 @@ export class ReviewsService {
 
     if (!expectedSecret) {
       if (process.env.NODE_ENV === 'production') {
-        throw new InternalServerErrorException('AUTH_SYNC_SECRET is not configured.');
+        throw new InternalServerErrorException(
+          'AUTH_SYNC_SECRET is not configured.',
+        );
       }
 
       return;

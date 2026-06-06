@@ -5,7 +5,12 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AdminApprovalStatus, AuthProvider, Prisma, UserRole } from '@prisma/client';
+import {
+  AdminApprovalStatus,
+  AuthProvider,
+  Prisma,
+  UserRole,
+} from '@prisma/client';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
 import { AdminLoginDto } from './dto/admin-login.dto';
@@ -25,7 +30,9 @@ export class AuthService {
     });
 
     if (existingUser && existingUser.role !== UserRole.CUSTOMER) {
-      throw new UnauthorizedException('Use the admin sign-in flow for this account.');
+      throw new UnauthorizedException(
+        'Use the admin sign-in flow for this account.',
+      );
     }
 
     const user = await this.prisma.user.upsert({
@@ -132,7 +139,9 @@ export class AuthService {
       user.role === UserRole.ADMIN &&
       user.adminApprovalStatus !== AdminApprovalStatus.APPROVED
     ) {
-      throw new UnauthorizedException('Admin access is pending super admin approval.');
+      throw new UnauthorizedException(
+        'Admin access is pending super admin approval.',
+      );
     }
 
     if (!verifyPassword(input.password, user.passwordHash)) {
@@ -232,7 +241,9 @@ export class AuthService {
 
     if (!expectedSecret) {
       if (process.env.NODE_ENV === 'production') {
-        throw new InternalServerErrorException('AUTH_SYNC_SECRET is not configured.');
+        throw new InternalServerErrorException(
+          'AUTH_SYNC_SECRET is not configured.',
+        );
       }
 
       return;
@@ -249,7 +260,8 @@ export class AuthService {
     name: string | null;
     adminRequestedAt: Date | null;
   }) {
-    const approvalEmail = process.env.ADMIN_APPROVAL_EMAIL ?? 'crumbhouse2026@gmail.com';
+    const approvalEmail =
+      process.env.ADMIN_APPROVAL_EMAIL ?? 'crumbhouse2026@gmail.com';
 
     // Replace this with an SMTP/provider integration once email credentials are configured.
     // For local development, the request is visible in server logs and the super-admin UI.
@@ -300,7 +312,9 @@ function verifyPassword(password: string, storedHash: string) {
     return false;
   }
 
-  const hashBuffer = Buffer.from(scryptSync(password, salt, 64).toString('hex'));
+  const hashBuffer = Buffer.from(
+    scryptSync(password, salt, 64).toString('hex'),
+  );
   const expectedBuffer = Buffer.from(expectedHash);
 
   if (hashBuffer.length !== expectedBuffer.length) {

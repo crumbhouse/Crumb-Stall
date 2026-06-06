@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { AuthenticatedUserGuard } from '../../common/auth/authenticated-user.guard';
 import type { AuthenticatedRequest } from '../../common/auth/authenticated-user.guard';
@@ -41,7 +51,10 @@ export class AuthController {
   @Patch('admin/requests/:userId/approve')
   @UseGuards(AuthenticatedUserGuard, RolesGuard)
   @Roles(UserRole.SUPER_ADMIN)
-  approveAdminRequest(@Param('userId') userId: string, @Req() request: AuthenticatedRequest) {
+  approveAdminRequest(
+    @Param('userId') userId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
     return this.authService.approveAdminRequest(userId, request.user!.email);
   }
 

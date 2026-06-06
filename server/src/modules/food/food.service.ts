@@ -59,7 +59,11 @@ export class FoodService {
     const items = await this.prisma.foodItem.findMany({
       where: { isAvailable: true },
       include: foodInclude,
-      orderBy: [{ popularity: 'desc' }, { ratingAverage: 'desc' }, { name: 'asc' }],
+      orderBy: [
+        { popularity: 'desc' },
+        { ratingAverage: 'desc' },
+        { name: 'asc' },
+      ],
       take: limit,
     });
 
@@ -88,7 +92,9 @@ export class FoodService {
           { name: { contains: query.search, mode: 'insensitive' } },
           { description: { contains: query.search, mode: 'insensitive' } },
           { tags: { has: query.search } },
-          { category: { name: { contains: query.search, mode: 'insensitive' } } },
+          {
+            category: { name: { contains: query.search, mode: 'insensitive' } },
+          },
         ],
       });
     }
@@ -121,7 +127,9 @@ export class FoodService {
     return and.length > 0 ? { AND: and } : {};
   }
 
-  private serializeFoodItem(item: Prisma.FoodItemGetPayload<{ include: typeof foodInclude }>) {
+  private serializeFoodItem(
+    item: Prisma.FoodItemGetPayload<{ include: typeof foodInclude }>,
+  ) {
     const price = item.price.toNumber();
     const discountPrice = item.discountPrice?.toNumber() ?? null;
 

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { DEFAULT_CURRENCY } from '../../common/constants/app.constants';
@@ -109,7 +113,9 @@ export class PaymentsService {
         };
       }
 
-      throw new BadRequestException('Invalid mock payment verification payload');
+      throw new BadRequestException(
+        'Invalid mock payment verification payload',
+      );
     }
 
     const expectedSignature = createHmac('sha256', keySecret)
@@ -118,10 +124,13 @@ export class PaymentsService {
 
     const actual = Buffer.from(dto.razorpaySignature);
     const expected = Buffer.from(expectedSignature);
-    const verified = actual.length === expected.length && timingSafeEqual(actual, expected);
+    const verified =
+      actual.length === expected.length && timingSafeEqual(actual, expected);
 
     if (!verified) {
-      throw new BadRequestException('Razorpay payment signature verification failed');
+      throw new BadRequestException(
+        'Razorpay payment signature verification failed',
+      );
     }
 
     return {
@@ -132,11 +141,10 @@ export class PaymentsService {
     };
   }
 
-  async findCapturedPaymentForOrder(razorpayOrderId: string) {
-    const attempts = 8;
-
+  async findCapturedPaymentForOrder(razorpayOrderId: string, attempts = 8) {
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
-      const payment = await this.findCapturedPaymentForOrderOnce(razorpayOrderId);
+      const payment =
+        await this.findCapturedPaymentForOrderOnce(razorpayOrderId);
 
       if (payment) {
         return payment;
@@ -157,7 +165,9 @@ export class PaymentsService {
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!keyId || !keySecret) {
-      throw new BadRequestException('Payment recovery is only available for live Razorpay orders');
+      throw new BadRequestException(
+        'Payment recovery is only available for live Razorpay orders',
+      );
     }
 
     const response = await fetch(
@@ -177,7 +187,9 @@ export class PaymentsService {
       });
     }
 
-    const payload = (await response.json()) as { items?: RazorpayPaymentResponse[] };
+    const payload = (await response.json()) as {
+      items?: RazorpayPaymentResponse[];
+    };
     const payment = (payload.items ?? []).find(
       (item) => item.status === 'captured' || item.captured,
     );
@@ -195,12 +207,17 @@ export class PaymentsService {
     };
   }
 
-  verifyWebhookSignature(rawBody: Buffer | string | undefined, signature: string | undefined) {
+  verifyWebhookSignature(
+    rawBody: Buffer | string | undefined,
+    signature: string | undefined,
+  ) {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
     if (!webhookSecret) {
       if (process.env.NODE_ENV === 'production') {
-        throw new InternalServerErrorException('RAZORPAY_WEBHOOK_SECRET is not configured.');
+        throw new InternalServerErrorException(
+          'RAZORPAY_WEBHOOK_SECRET is not configured.',
+        );
       }
 
       return true;
@@ -210,11 +227,16 @@ export class PaymentsService {
       throw new BadRequestException('Missing Razorpay webhook signature.');
     }
 
-    const expectedSignature = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+    const expectedSignature = createHmac('sha256', webhookSecret)
+      .update(rawBody)
+      .digest('hex');
     const actual = Buffer.from(signature);
     const expected = Buffer.from(expectedSignature);
 
-    if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
+    if (
+      actual.length !== expected.length ||
+      !timingSafeEqual(actual, expected)
+    ) {
       throw new BadRequestException('Invalid Razorpay webhook signature.');
     }
 

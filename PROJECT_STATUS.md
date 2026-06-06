@@ -2,7 +2,7 @@
 
 This document tracks completed implementation work and the setup steps the project owner needs to do locally. `TODO.md` remains the forward-looking task list; this file is the handoff/status record.
 
-Last updated: 2026-06-04
+Last updated: 2026-06-06
 
 ## Completed Work
 
@@ -99,11 +99,13 @@ Last updated: 2026-06-04
 - Made logged-out customer navigation public-only, routed add-to-cart/cart actions to login, and preserved the clicked item so it is added after Google login.
 - Added separate admin credentials auth with admin registration requests, pending approval state, a seeded super admin, and a super-admin approval page.
 - Added admin-protected analytics APIs for summary metrics, revenue trend, top foods, and live queue, plus a Next.js proxy/helper for admin UI consumption.
+- Connected the admin dashboard and analytics page to real analytics data, including live summary cards, revenue trend bars, best sellers, and live queue snapshots.
 - Fixed server-rendered order history and tracking pages so their internal API requests forward the logged-in user's Auth.js cookies.
+- Completed the current `bug.txt` pass: upgraded invoice PDF styling, added customer order live refresh, tightened notification polling, clarified ready/OTP handover, added admin order detail pages, redesigned admin login, added pending-payment detail recovery, and introduced 401/403/404 route handling.
 
 ## Current Next Task
 
-- Connect admin dashboard to real analytics.
+- Add category CRUD UI.
 
 ## Local Setup Steps For You
 

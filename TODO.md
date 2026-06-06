@@ -85,13 +85,14 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Preserve clicked cart item across customer login.
 - [x] Add separate admin credentials login, registration request, and super-admin approval flow.
 - [x] Add analytics APIs.
+- [x] Connect admin dashboard to real analytics.
 - [x] Fix server-rendered order history/tracking auth cookie forwarding.
 - [x] Verify client lint and build.
 - [x] Verify server tests and build after backend foundation work.
 
 ## Next Task
 
-- [ ] Connect admin dashboard to real analytics.
+- [ ] Add category CRUD UI.
 
 ## Customer Flow
 
@@ -138,7 +139,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 
 ## Admin Flow
 
-- [ ] Connect admin dashboard to real analytics.
+- [x] Connect admin dashboard to real analytics.
 - [x] Add hidden admin credentials login and approval request flow.
 - [x] Add super-admin admin approval page.
 - [ ] Add category CRUD UI.

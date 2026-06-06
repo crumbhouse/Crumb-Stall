@@ -7,8 +7,8 @@ import { updateAdminOrderStatus } from "@/lib/admin-orders";
 const labels: Record<string, string> = {
   CONFIRMED: "Confirmed",
   PREPARING: "Preparing",
-  READY_FOR_PICKUP: "Ready",
-  OTP_VERIFICATION_PENDING: "OTP pending",
+  READY_FOR_PICKUP: "Ready for pickup",
+  OTP_VERIFICATION_PENDING: "Ready / OTP pending",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
 };
@@ -26,6 +26,9 @@ export function AdminOrderStatusControl({
   const [status, setStatus] = useState(currentStatus);
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
+  const statusOptions = allowedStatuses.includes(currentStatus)
+    ? allowedStatuses
+    : [currentStatus, ...allowedStatuses];
 
   function updateStatus() {
     setMessage("");
@@ -48,7 +51,7 @@ export function AdminOrderStatusControl({
         onChange={(event) => setStatus(event.target.value)}
         className="rounded-md border border-stone-200 px-3 py-2 text-sm font-black outline-none focus:border-orange-600"
       >
-        {allowedStatuses.map((option) => (
+        {statusOptions.map((option) => (
           <option key={option} value={option}>
             {labels[option] ?? option}
           </option>

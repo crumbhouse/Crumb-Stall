@@ -32,7 +32,9 @@ export type RecoverCheckoutOrderDto = {
   razorpayOrderId: string;
 };
 
-export function parseStartCheckoutOrderDto(body: Record<string, unknown>): StartCheckoutOrderDto {
+export function parseStartCheckoutOrderDto(
+  body: Record<string, unknown>,
+): StartCheckoutOrderDto {
   if (!Array.isArray(body.items) || body.items.length === 0) {
     throw new BadRequestException('items must contain at least one item');
   }
@@ -45,7 +47,8 @@ export function parseStartCheckoutOrderDto(body: Record<string, unknown>): Start
         : undefined,
     pickupSlot: parsePickupSlot(body.pickupSlot),
     checkoutAttemptId:
-      typeof body.checkoutAttemptId === 'string' && body.checkoutAttemptId.trim()
+      typeof body.checkoutAttemptId === 'string' &&
+      body.checkoutAttemptId.trim()
         ? body.checkoutAttemptId.trim().slice(0, 120)
         : undefined,
   };
@@ -62,7 +65,9 @@ export function parseConfirmCheckoutPaymentDto(
   };
 }
 
-export function parseRecoverCheckoutOrderDto(body: Record<string, unknown>): RecoverCheckoutOrderDto {
+export function parseRecoverCheckoutOrderDto(
+  body: Record<string, unknown>,
+): RecoverCheckoutOrderDto {
   return {
     orderNumber: readString(body.orderNumber, 'orderNumber'),
     razorpayOrderId: readString(body.razorpayOrderId, 'razorpayOrderId'),
@@ -75,10 +80,16 @@ function parseOrderItem(value: unknown): CheckoutOrderItemDto {
   }
 
   const record = value as Record<string, unknown>;
-  const foodItemId = typeof record.foodItemId === 'string' ? record.foodItemId.trim() : undefined;
+  const foodItemId =
+    typeof record.foodItemId === 'string'
+      ? record.foodItemId.trim()
+      : undefined;
   const slug = typeof record.slug === 'string' ? record.slug.trim() : undefined;
   const quantity = Number(record.quantity);
-  const note = typeof record.note === 'string' ? record.note.trim().slice(0, 120) : undefined;
+  const note =
+    typeof record.note === 'string'
+      ? record.note.trim().slice(0, 120)
+      : undefined;
 
   if (!foodItemId && !slug) {
     throw new BadRequestException('Each item requires foodItemId or slug');
@@ -106,7 +117,13 @@ function parsePickupSlot(value: unknown): CheckoutPickupSlotDto {
   const label = typeof record.label === 'string' ? record.label.trim() : '';
   const minutesFromNow = Number(record.minutesFromNow);
 
-  if (!id || !label || !Number.isInteger(minutesFromNow) || minutesFromNow < 0 || minutesFromNow > 120) {
+  if (
+    !id ||
+    !label ||
+    !Number.isInteger(minutesFromNow) ||
+    minutesFromNow < 0 ||
+    minutesFromNow > 120
+  ) {
     throw new BadRequestException('pickupSlot is invalid');
   }
 

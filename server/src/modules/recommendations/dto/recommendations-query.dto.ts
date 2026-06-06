@@ -25,8 +25,14 @@ function parsePositiveInt(
 
   const numberValue = Number(value);
 
-  if (!Number.isInteger(numberValue) || numberValue < min || numberValue > max) {
-    throw new BadRequestException(`${field} must be an integer from ${min} to ${max}`);
+  if (
+    !Number.isInteger(numberValue) ||
+    numberValue < min ||
+    numberValue > max
+  ) {
+    throw new BadRequestException(
+      `${field} must be an integer from ${min} to ${max}`,
+    );
   }
 
   return numberValue;

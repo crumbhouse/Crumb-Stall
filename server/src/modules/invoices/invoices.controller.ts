@@ -7,11 +7,21 @@ export class InvoicesController {
   constructor(private readonly invoicesService: InvoicesService) {}
 
   @Get(':invoiceNumber/pdf')
-  async downloadPdf(@Param('invoiceNumber') invoiceNumber: string, @Res() response: Response) {
-    const { buffer, filename } = await this.invoicesService.generatePdf(invoiceNumber);
+  async downloadPdf(
+    @Param('invoiceNumber') invoiceNumber: string,
+    @Res() response: Response,
+  ) {
+    const { buffer, filename } =
+      await this.invoicesService.generatePdf(invoiceNumber);
 
     response.setHeader('Content-Type', 'application/pdf');
-    response.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    response.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    response.setHeader('Pragma', 'no-cache');
+    response.setHeader('Expires', '0');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${filename}"`,
+    );
     response.send(buffer);
   }
 

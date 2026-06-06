@@ -5,9 +5,16 @@ const notifications = {
   create: jest.fn(),
 };
 
+const liveEvents = {
+  emitAdminOrderUpdated: jest.fn(),
+  emitCustomerOrderStatus: jest.fn(),
+};
+
 describe('OtpService', () => {
   beforeEach(() => {
     notifications.create.mockClear();
+    liveEvents.emitAdminOrderUpdated.mockClear();
+    liveEvents.emitCustomerOrderStatus.mockClear();
   });
 
   it('does not expose an OTP before an order is ready', async () => {
@@ -16,10 +23,17 @@ describe('OtpService', () => {
         findUnique: jest.fn(),
       },
     };
-    const service = new OtpService(prisma as never, notifications as never);
+    const service = new OtpService(
+      prisma as never,
+      liveEvents as never,
+      notifications as never,
+    );
 
     await expect(
-      service.getDisplayOtpForOrder({ id: 'order-1', status: OrderStatus.PLACED }),
+      service.getDisplayOtpForOrder({
+        id: 'order-1',
+        status: OrderStatus.PLACED,
+      }),
     ).resolves.toBeNull();
     expect(prisma.orderOtp.findUnique).not.toHaveBeenCalled();
   });
@@ -36,7 +50,11 @@ describe('OtpService', () => {
         ),
       },
     };
-    const service = new OtpService(prisma as never, notifications as never);
+    const service = new OtpService(
+      prisma as never,
+      liveEvents as never,
+      notifications as never,
+    );
     const otp = await service.getDisplayOtpForOrder({
       id: 'order-1',
       status: OrderStatus.READY_FOR_PICKUP,
@@ -48,6 +66,67 @@ describe('OtpService', () => {
         create: expect.objectContaining({
           otpHash: expect.not.stringMatching(otp?.code ?? ''),
         }),
+      }),
+    );
+  });
+
+  it('force refreshes an active OTP even when it has not expired', async () => {
+    const future = new Date(Date.now() + 60_000);
+    const prisma = {
+      order: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'order-1',
+          userId: 'user-1',
+          status: OrderStatus.READY_FOR_PICKUP,
+        }),
+      },
+      orderOtp: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'otp-1',
+          orderId: 'order-1',
+          otpHash: 'active-hash',
+          expiresAt: future,
+          verifiedAt: null,
+          attemptCount: 0,
+        }),
+        upsert: jest.fn().mockImplementation(({ update }) =>
+          Promise.resolve({
+            id: 'otp-1',
+            ...update,
+          }),
+        ),
+      },
+    };
+    const service = new OtpService(
+      prisma as never,
+      liveEvents as never,
+      notifications as never,
+    );
+
+    const otp = await service.generateForOrderNumber('CS-1', {
+      forceRefresh: true,
+    });
+
+    expect(otp?.code).toMatch(/^\d{6}$/);
+    expect(prisma.orderOtp.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          verifiedAt: null,
+          attemptCount: 0,
+        }),
+      }),
+    );
+    expect(notifications.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        title: 'Pickup OTP generated',
+      }),
+    );
+    expect(liveEvents.emitCustomerOrderStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderNumber: 'CS-1',
+        status: OrderStatus.READY_FOR_PICKUP,
+        userId: 'user-1',
       }),
     );
   });
@@ -64,7 +143,9 @@ describe('OtpService', () => {
         update: jest.fn(),
       },
       orderOtp: {
-        findUnique: jest.fn().mockImplementation(() => Promise.resolve(storedOtp)),
+        findUnique: jest
+          .fn()
+          .mockImplementation(() => Promise.resolve(storedOtp)),
         upsert: jest.fn().mockImplementation(({ create }) => {
           storedOtp = {
             id: 'otp-1',
@@ -79,7 +160,11 @@ describe('OtpService', () => {
       },
       $transaction: jest.fn().mockResolvedValue([]),
     };
-    const service = new OtpService(prisma as never, notifications as never);
+    const service = new OtpService(
+      prisma as never,
+      liveEvents as never,
+      notifications as never,
+    );
     const otp = await service.generateForOrderNumber('CS-1');
     const result = await service.verifyForOrderNumber('CS-1', otp?.code ?? '');
 
@@ -88,6 +173,19 @@ describe('OtpService', () => {
       status: OrderStatus.COMPLETED,
     });
     expect(prisma.$transaction).toHaveBeenCalled();
+    expect(liveEvents.emitCustomerOrderStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderNumber: 'CS-1',
+        status: OrderStatus.COMPLETED,
+        userId: 'user-1',
+      }),
+    );
+    expect(liveEvents.emitAdminOrderUpdated).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderNumber: 'CS-1',
+        status: OrderStatus.COMPLETED,
+      }),
+    );
   });
 
   it('increments attempt count for invalid OTPs', async () => {
@@ -112,12 +210,78 @@ describe('OtpService', () => {
         update: jest.fn().mockResolvedValue({ attemptCount: 1 }),
       },
     };
-    const service = new OtpService(prisma as never, notifications as never);
+    const service = new OtpService(
+      prisma as never,
+      liveEvents as never,
+      notifications as never,
+    );
 
-    await expect(service.verifyForOrderNumber('CS-1', '123456')).rejects.toThrow('Invalid OTP');
+    await expect(
+      service.verifyForOrderNumber('CS-1', '123456'),
+    ).rejects.toThrow('Invalid OTP');
     expect(prisma.orderOtp.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: { attemptCount: { increment: 1 } },
+      }),
+    );
+  });
+
+  it('generates a fresh OTP when verification sees an expired code', async () => {
+    const past = new Date(Date.now() - 60_000);
+    const prisma = {
+      order: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'order-1',
+          userId: 'user-1',
+          status: OrderStatus.READY_FOR_PICKUP,
+        }),
+      },
+      orderOtp: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'otp-1',
+          orderId: 'order-1',
+          otpHash: 'expired-hash',
+          expiresAt: past,
+          verifiedAt: null,
+          attemptCount: 0,
+        }),
+        upsert: jest.fn().mockImplementation(({ update }) =>
+          Promise.resolve({
+            id: 'otp-1',
+            ...update,
+            attemptCount: 0,
+          }),
+        ),
+      },
+    };
+    const service = new OtpService(
+      prisma as never,
+      liveEvents as never,
+      notifications as never,
+    );
+
+    await expect(
+      service.verifyForOrderNumber('CS-1', '123456'),
+    ).rejects.toThrow('new pickup OTP has been generated');
+    expect(prisma.orderOtp.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          verifiedAt: null,
+          attemptCount: 0,
+        }),
+      }),
+    );
+    expect(notifications.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        title: 'Pickup OTP generated',
+      }),
+    );
+    expect(liveEvents.emitCustomerOrderStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderNumber: 'CS-1',
+        status: OrderStatus.READY_FOR_PICKUP,
+        userId: 'user-1',
       }),
     );
   });

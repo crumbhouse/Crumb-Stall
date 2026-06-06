@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AdminOrderOtpControl } from "@/components/admin/admin-order-otp-control";
 import { AdminOrderStatusControl } from "@/components/admin/admin-order-status-control";
 import { AdminShell } from "@/components/admin-shell";
+import { OrderLiveRefresh } from "@/components/order-live-refresh";
 import { getAdminOrders } from "@/lib/admin-orders-server";
 
 const statuses = [
@@ -9,8 +10,8 @@ const statuses = [
   { value: "PLACED", label: "Placed" },
   { value: "CONFIRMED", label: "Confirmed" },
   { value: "PREPARING", label: "Preparing" },
-  { value: "READY_FOR_PICKUP", label: "Ready" },
-  { value: "OTP_VERIFICATION_PENDING", label: "OTP pending" },
+  { value: "READY_FOR_PICKUP", label: "Ready for pickup" },
+  { value: "OTP_VERIFICATION_PENDING", label: "Ready / OTP pending" },
   { value: "COMPLETED", label: "Completed" },
   { value: "CANCELLED", label: "Cancelled" },
 ];
@@ -32,6 +33,7 @@ export default async function AdminOrdersPage({
 
   return (
     <AdminShell>
+      <OrderLiveRefresh streamUrl="/api/live/admin" />
       <p className="text-sm font-black uppercase tracking-[0.16em] text-orange-600">
         Operations
       </p>
@@ -75,7 +77,7 @@ export default async function AdminOrdersPage({
               className="grid gap-4 border-b border-stone-100 p-4 last:border-0 xl:grid-cols-[1fr_180px_120px_360px] xl:items-center"
             >
               <div>
-                <Link href={`/orders/${order.orderNumber}`} className="font-black">
+                <Link href={`/admin/orders/${order.orderNumber}`} className="font-black">
                   {order.orderNumber}
                 </Link>
                 <p className="mt-1 text-sm font-semibold text-stone-500">
@@ -99,9 +101,14 @@ export default async function AdminOrdersPage({
                 currentStatus={order.status}
                 allowedStatuses={history.allowedStatusUpdates}
               />
-              {order.status === "READY_FOR_PICKUP" ||
-              order.status === "OTP_VERIFICATION_PENDING" ? (
-                <div className="xl:col-start-4">
+              {order.status === "READY_FOR_PICKUP" || order.status === "OTP_VERIFICATION_PENDING" ? (
+                <div className="rounded-lg bg-green-50 p-3 xl:col-start-4">
+                  <p className="text-xs font-black uppercase tracking-[0.12em] text-green-800">
+                    Pickup handover
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-green-700">
+                    Ask the customer for the 6-digit OTP shown on their order screen.
+                  </p>
                   <AdminOrderOtpControl orderNumber={order.orderNumber} />
                 </div>
               ) : null}

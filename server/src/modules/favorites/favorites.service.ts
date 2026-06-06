@@ -16,7 +16,9 @@ const favoriteFoodInclude = {
   },
 } satisfies Prisma.FavoriteInclude;
 
-type FavoriteRecord = Prisma.FavoriteGetPayload<{ include: typeof favoriteFoodInclude }>;
+type FavoriteRecord = Prisma.FavoriteGetPayload<{
+  include: typeof favoriteFoodInclude;
+}>;
 
 @Injectable()
 export class FavoritesService {
@@ -73,7 +75,7 @@ export class FavoritesService {
 
     await this.prisma.favorite.upsert({
       where: {
-          userId_foodItemId: {
+        userId_foodItemId: {
           userId,
           foodItemId: foodItem.id,
         },

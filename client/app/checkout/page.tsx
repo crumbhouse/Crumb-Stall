@@ -230,13 +230,14 @@ export default function CheckoutPage() {
   return (
     <main className="min-h-screen bg-[#f6f6f4] text-[#171717]">
       <CustomerNav />
-      <section className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[1fr_360px]">
-        <div>
-          <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
-            Checkout
-          </p>
-          <h1 className="mt-2 text-3xl font-black">Pickup and payment</h1>
-          <div className="mt-6 space-y-4">
+      <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+        <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+          Checkout
+        </p>
+        <h1 className="mt-2 text-3xl font-black">Pickup and payment</h1>
+
+        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-4">
             <div className="rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
               <p className="font-black">Pickup time</p>
               <p className="mt-1 text-sm font-semibold text-[#646464]">
@@ -247,24 +248,24 @@ export default function CheckoutPage() {
                   const isSelected = pickupSlot?.id === slot.id;
 
                   return (
-                  <button
-                    key={slot.id}
-                    type="button"
-                    onClick={() => {
-                      setPickupSlot(slot);
-                      setPickupError(null);
-                    }}
-                    className={`rounded-md border px-4 py-3 text-sm font-black ${
-                      isSelected
-                        ? "border-[#e23744] bg-[#fff0f2] text-[#b91c2b]"
-                        : "border-[#e8e8e3] hover:border-[#e23744] hover:bg-[#fff0f2]"
-                    }`}
-                  >
-                    <span className="block">{slot.label}</span>
-                    <span className="mt-1 block text-xs font-semibold opacity-75">
-                      {slot.description}
-                    </span>
-                  </button>
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => {
+                        setPickupSlot(slot);
+                        setPickupError(null);
+                      }}
+                      className={`rounded-md border px-4 py-3 text-sm font-black ${
+                        isSelected
+                          ? "border-[#e23744] bg-[#fff0f2] text-[#b91c2b]"
+                          : "border-[#e8e8e3] hover:border-[#e23744] hover:bg-[#fff0f2]"
+                      }`}
+                    >
+                      <span className="block">{slot.label}</span>
+                      <span className="mt-1 block text-xs font-semibold opacity-75">
+                        {slot.description}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
@@ -318,9 +319,8 @@ export default function CheckoutPage() {
               ) : null}
             </form>
           </div>
-        </div>
 
-        <aside className="h-fit rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
+          <aside className="h-fit rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
           <h2 className="text-xl font-black">Order summary</h2>
           {items.length === 0 ? (
             <p className="mt-4 text-sm font-semibold text-[#646464]">Your cart is empty.</p>
@@ -401,7 +401,8 @@ export default function CheckoutPage() {
           >
             {isPaying ? "Starting payment..." : items.length > 0 ? "Pay with Razorpay" : "Back to menu"}
           </button>
-        </aside>
+          </aside>
+        </div>
       </section>
     </main>
   );

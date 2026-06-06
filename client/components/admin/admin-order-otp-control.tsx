@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { verifyAdminOrderOtp } from "@/lib/admin-orders";
+import { generateAdminOrderOtp, verifyAdminOrderOtp } from "@/lib/admin-orders";
 
 export function AdminOrderOtpControl({ orderNumber }: { orderNumber: string }) {
   const router = useRouter();
@@ -19,20 +19,37 @@ export function AdminOrderOtpControl({ orderNumber }: { orderNumber: string }) {
         setOtp("");
         setMessage("OTP verified");
         router.refresh();
-      } catch {
-        setMessage("Invalid OTP");
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "Invalid OTP");
+        router.refresh();
+      }
+    });
+  }
+
+  function regenerateOtp() {
+    setMessage("");
+
+    startTransition(async () => {
+      try {
+        await generateAdminOrderOtp(orderNumber);
+        setOtp("");
+        setMessage("New OTP sent to customer");
+        router.refresh();
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : "OTP generation failed");
       }
     });
   }
 
   return (
-    <div className="mt-3 flex flex-col gap-2 rounded-md bg-green-50 p-3 sm:flex-row sm:items-center">
+    <div className="mt-3 flex flex-col gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
       <input
         value={otp}
         onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
         inputMode="numeric"
-        placeholder="Pickup OTP"
-        className="min-w-0 rounded-md border border-green-100 px-3 py-2 text-sm font-black outline-none focus:border-green-600"
+        placeholder="Enter pickup OTP"
+        className="min-w-0 rounded-md border border-green-100 bg-white px-3 py-2 text-sm font-black outline-none focus:border-green-600"
       />
       <button
         type="button"
@@ -42,6 +59,15 @@ export function AdminOrderOtpControl({ orderNumber }: { orderNumber: string }) {
       >
         {isPending ? "Checking..." : "Verify"}
       </button>
+      <button
+        type="button"
+        onClick={regenerateOtp}
+        disabled={isPending}
+        className="rounded-md bg-white px-4 py-2 text-sm font-black text-green-800 ring-1 ring-green-200 disabled:opacity-50"
+      >
+        Generate new OTP
+      </button>
+      </div>
       {message ? <span className="text-xs font-black text-green-800">{message}</span> : null}
     </div>
   );

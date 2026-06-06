@@ -12,6 +12,7 @@ import { CouponsModule } from './modules/coupons/coupons.module';
 import { FavoritesModule } from './modules/favorites/favorites.module';
 import { FoodModule } from './modules/food/food.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
+import { LiveModule } from './modules/live/live.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { OtpModule } from './modules/otp/otp.module';
@@ -29,6 +30,7 @@ import { UsersModule } from './modules/users/users.module';
     UsersModule,
     CategoriesModule,
     FoodModule,
+    LiveModule,
     CartModule,
     CouponsModule,
     OrdersModule,

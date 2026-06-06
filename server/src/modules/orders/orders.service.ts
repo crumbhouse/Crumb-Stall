@@ -6,10 +6,16 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { NotificationType, OrderStatus, PaymentStatus, Prisma } from '@prisma/client';
+import {
+  NotificationType,
+  OrderStatus,
+  PaymentStatus,
+  Prisma,
+} from '@prisma/client';
 import { timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '../../database/prisma.service';
 import { CouponsService } from '../coupons/coupons.service';
+import { LiveEventsService } from '../live/live-events.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { OtpService } from '../otp/otp.service';
 import { PaymentsService } from '../payments/payments.service';
@@ -25,7 +31,6 @@ const ADMIN_STATUS_UPDATES: OrderStatus[] = [
   OrderStatus.CONFIRMED,
   OrderStatus.PREPARING,
   OrderStatus.READY_FOR_PICKUP,
-  OrderStatus.COMPLETED,
   OrderStatus.CANCELLED,
 ];
 
@@ -58,6 +63,7 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly couponsService: CouponsService,
+    private readonly liveEventsService: LiveEventsService,
     private readonly notificationsService: NotificationsService,
     private readonly paymentsService: PaymentsService,
     private readonly otpService: OtpService,
@@ -68,7 +74,10 @@ export class OrdersService {
     customerEmail?: string,
     syncSecret?: string,
   ) {
-    const customer = await this.resolveCheckoutCustomer(customerEmail, syncSecret);
+    const customer = await this.resolveCheckoutCustomer(
+      customerEmail,
+      syncSecret,
+    );
 
     if (dto.checkoutAttemptId) {
       const existingOrder = await this.prisma.order.findFirst({
@@ -155,7 +164,10 @@ export class OrdersService {
       razorpayPaymentId: dto.razorpayPaymentId,
       razorpaySignature: dto.razorpaySignature,
     });
-    const customer = await this.resolveCheckoutCustomer(customerEmail, syncSecret);
+    const customer = await this.resolveCheckoutCustomer(
+      customerEmail,
+      syncSecret,
+    );
     const rawPayload =
       paymentVerification.mode === 'live'
         ? await this.findVerifiedCapturedPaymentPayload(
@@ -179,10 +191,14 @@ export class OrdersService {
     customerEmail?: string,
     syncSecret?: string,
   ) {
-    const customer = await this.resolveCheckoutCustomer(customerEmail, syncSecret);
-    const recoveredPayment = await this.paymentsService.findCapturedPaymentForOrder(
-      dto.razorpayOrderId,
+    const customer = await this.resolveCheckoutCustomer(
+      customerEmail,
+      syncSecret,
     );
+    const recoveredPayment =
+      await this.paymentsService.findCapturedPaymentForOrder(
+        dto.razorpayOrderId,
+      );
 
     return this.finalizePaidOrder({
       userId: customer.id,
@@ -205,7 +221,8 @@ export class OrdersService {
     const paymentEntity = this.readWebhookEntity(payload, 'payment');
     const orderEntity = this.readWebhookEntity(payload, 'order');
     const providerOrderId =
-      this.readJsonString(paymentEntity, 'order_id') ?? this.readJsonString(orderEntity, 'id');
+      this.readJsonString(paymentEntity, 'order_id') ??
+      this.readJsonString(orderEntity, 'id');
     const providerPaymentId = this.readJsonString(paymentEntity, 'id');
     const eventId = this.resolveWebhookEventId({
       eventIdHeader,
@@ -228,34 +245,56 @@ export class OrdersService {
 
     if (event === 'payment.captured' || event === 'order.paid') {
       if (!providerOrderId) {
-        throw new BadRequestException('Razorpay webhook does not include an order id.');
+        throw new BadRequestException(
+          'Razorpay webhook does not include an order id.',
+        );
       }
 
       const capturedPaymentId =
         providerPaymentId ??
-        (await this.paymentsService.findCapturedPaymentForOrder(providerOrderId)).paymentId;
+        (
+          await this.paymentsService.findCapturedPaymentForOrder(
+            providerOrderId,
+          )
+        ).paymentId;
 
       await this.finalizePaidOrder({
         providerOrderId,
         providerPaymentId: capturedPaymentId,
         rawPayload: payload,
       });
-      await this.markWebhookEventProcessed(webhookEvent.id, providerOrderId, capturedPaymentId);
+      await this.markWebhookEventProcessed(
+        webhookEvent.id,
+        providerOrderId,
+        capturedPaymentId,
+      );
 
       return { received: true, processed: true };
     }
 
     if (event === 'payment.failed') {
       if (providerOrderId) {
-        await this.markPendingPaymentFailed(providerOrderId, providerPaymentId, payload);
+        await this.markPendingPaymentFailed(
+          providerOrderId,
+          providerPaymentId,
+          payload,
+        );
       }
 
-      await this.markWebhookEventProcessed(webhookEvent.id, providerOrderId, providerPaymentId);
+      await this.markWebhookEventProcessed(
+        webhookEvent.id,
+        providerOrderId,
+        providerPaymentId,
+      );
 
       return { received: true, processed: true };
     }
 
-    await this.markWebhookEventProcessed(webhookEvent.id, providerOrderId, providerPaymentId);
+    await this.markWebhookEventProcessed(
+      webhookEvent.id,
+      providerOrderId,
+      providerPaymentId,
+    );
 
     return { received: true, processed: false };
   }
@@ -263,19 +302,21 @@ export class OrdersService {
   private async prepareCheckoutOrder(
     dto: Pick<StartCheckoutOrderDto, 'items' | 'couponCode' | 'pickupSlot'>,
   ): Promise<PreparedCheckoutOrder> {
-    const foodItemFilters: Prisma.FoodItemWhereInput[] = dto.items.flatMap((item) => {
-      const filters: Prisma.FoodItemWhereInput[] = [];
+    const foodItemFilters: Prisma.FoodItemWhereInput[] = dto.items.flatMap(
+      (item) => {
+        const filters: Prisma.FoodItemWhereInput[] = [];
 
-      if (item.foodItemId) {
-        filters.push({ id: item.foodItemId });
-      }
+        if (item.foodItemId) {
+          filters.push({ id: item.foodItemId });
+        }
 
-      if (item.slug) {
-        filters.push({ slug: item.slug });
-      }
+        if (item.slug) {
+          filters.push({ slug: item.slug });
+        }
 
-      return filters;
-    });
+        return filters;
+      },
+    );
 
     const foodItems = await this.prisma.foodItem.findMany({
       where: {
@@ -285,18 +326,24 @@ export class OrdersService {
 
     const orderItems = dto.items.map((item) => {
       const foodItem = foodItems.find(
-        (candidate) => candidate.id === item.foodItemId || candidate.slug === item.slug,
+        (candidate) =>
+          candidate.id === item.foodItemId || candidate.slug === item.slug,
       );
 
       if (!foodItem) {
-        throw new BadRequestException(`Food item ${item.slug ?? item.foodItemId} was not found`);
+        throw new BadRequestException(
+          `Food item ${item.slug ?? item.foodItemId} was not found`,
+        );
       }
 
       if (!foodItem.isAvailable) {
-        throw new BadRequestException(`${foodItem.name} is currently unavailable`);
+        throw new BadRequestException(
+          `${foodItem.name} is currently unavailable`,
+        );
       }
 
-      const unitPrice = foodItem.discountPrice?.toNumber() ?? foodItem.price.toNumber();
+      const unitPrice =
+        foodItem.discountPrice?.toNumber() ?? foodItem.price.toNumber();
 
       return {
         foodItem,
@@ -308,14 +355,14 @@ export class OrdersService {
     });
 
     const subtotal = orderItems.reduce((sum, item) => sum + item.totalPrice, 0);
-    const { coupon, discount } = await this.couponsService.resolveCouponForOrder(
-      dto.couponCode,
-      subtotal,
-    );
+    const { coupon, discount } =
+      await this.couponsService.resolveCouponForOrder(dto.couponCode, subtotal);
     const taxableAmount = Math.max(subtotal - discount, 0);
     const tax = Math.round(taxableAmount * 0.05);
     const total = taxableAmount + tax;
-    const pickupTime = new Date(Date.now() + dto.pickupSlot.minutesFromNow * 60_000);
+    const pickupTime = new Date(
+      Date.now() + dto.pickupSlot.minutesFromNow * 60_000,
+    );
 
     return {
       orderItems,
@@ -354,10 +401,14 @@ export class OrdersService {
     }>;
   }) {
     if (order.status !== OrderStatus.PENDING_PAYMENT) {
-      throw new BadRequestException('Checkout can only be started for pending payment orders.');
+      throw new BadRequestException(
+        'Checkout can only be started for pending payment orders.',
+      );
     }
 
-    const existingPayment = order.payments.find((payment) => payment.providerOrderId);
+    const existingPayment = order.payments.find(
+      (payment) => payment.providerOrderId,
+    );
 
     if (existingPayment) {
       return this.serializeCheckoutStart(order);
@@ -409,7 +460,9 @@ export class OrdersService {
         .catch((updateError: unknown) => {
           this.logger.warn(
             `Could not mark failed checkout ${order.orderNumber} as cancelled: ${
-              updateError instanceof Error ? updateError.message : String(updateError)
+              updateError instanceof Error
+                ? updateError.message
+                : String(updateError)
             }`,
           );
         });
@@ -422,12 +475,13 @@ export class OrdersService {
     razorpayOrderId: string,
     razorpayPaymentId: string,
   ) {
-    const capturedPayment = await this.paymentsService.findCapturedPaymentForOrder(
-      razorpayOrderId,
-    );
+    const capturedPayment =
+      await this.paymentsService.findCapturedPaymentForOrder(razorpayOrderId);
 
     if (capturedPayment.paymentId !== razorpayPaymentId) {
-      throw new BadRequestException('Captured payment does not match the checkout payment id.');
+      throw new BadRequestException(
+        'Captured payment does not match the checkout payment id.',
+      );
     }
 
     return capturedPayment.rawPayload;
@@ -454,7 +508,9 @@ export class OrdersService {
     });
 
     if (!payment) {
-      throw new NotFoundException('Payment record was not found for this Razorpay order.');
+      throw new NotFoundException(
+        'Payment record was not found for this Razorpay order.',
+      );
     }
 
     if (input.userId && payment.order.userId !== input.userId) {
@@ -465,100 +521,118 @@ export class OrdersService {
       throw new BadRequestException('Payment does not belong to this order.');
     }
 
-    if (payment.providerPaymentId && payment.providerPaymentId !== input.providerPaymentId) {
-      throw new BadRequestException('Payment was already captured with a different payment id.');
+    if (
+      payment.providerPaymentId &&
+      payment.providerPaymentId !== input.providerPaymentId
+    ) {
+      throw new BadRequestException(
+        'Payment was already captured with a different payment id.',
+      );
     }
 
     this.assertCapturedAmountMatches(payment.amount, input.rawPayload);
 
-    const { order, transitionedToPlaced } = await this.prisma.$transaction(async (tx) => {
-      const currentPayment = await tx.payment.findUnique({
-        where: { id: payment.id },
-        include: {
-          order: {
-            include: {
-              items: true,
-              payments: { orderBy: { createdAt: 'desc' } },
+    const { order, transitionedToPlaced } = await this.prisma.$transaction(
+      async (tx) => {
+        const currentPayment = await tx.payment.findUnique({
+          where: { id: payment.id },
+          include: {
+            order: {
+              include: {
+                items: true,
+                payments: { orderBy: { createdAt: 'desc' } },
+              },
             },
           },
-        },
-      });
-
-      if (!currentPayment) {
-        throw new NotFoundException('Payment record was not found for this Razorpay order.');
-      }
-
-      if (
-        currentPayment.providerPaymentId &&
-        currentPayment.providerPaymentId !== input.providerPaymentId
-      ) {
-        throw new BadRequestException('Payment was already captured with a different payment id.');
-      }
-
-      await tx.payment.update({
-        where: { id: currentPayment.id },
-        data: {
-          status: PaymentStatus.CAPTURED,
-          providerPaymentId: input.providerPaymentId,
-          providerSignature: input.providerSignature ?? currentPayment.providerSignature,
-          rawPayload: input.rawPayload,
-        },
-      });
-
-      const updateResult = await tx.order.updateMany({
-        where: {
-          id: currentPayment.orderId,
-          status: OrderStatus.PENDING_PAYMENT,
-        },
-        data: {
-          status: OrderStatus.PLACED,
-          placedAt: new Date(),
-          cancelledAt: null,
-        },
-      });
-      const transitionedToPlaced = updateResult.count === 1;
-
-      if (transitionedToPlaced && currentPayment.order.couponId) {
-        const existingUsage = await tx.couponUsage.findFirst({
-          where: {
-            orderId: currentPayment.orderId,
-            couponId: currentPayment.order.couponId,
-          },
-          select: { id: true },
         });
 
-        if (!existingUsage) {
-          await tx.coupon.update({
-            where: { id: currentPayment.order.couponId },
-            data: { usedCount: { increment: 1 } },
-          });
-          await tx.couponUsage.create({
-            data: {
-              couponId: currentPayment.order.couponId,
-              userId: currentPayment.order.userId,
-              orderId: currentPayment.orderId,
-            },
-          });
+        if (!currentPayment) {
+          throw new NotFoundException(
+            'Payment record was not found for this Razorpay order.',
+          );
         }
-      }
 
-      const finalizedOrder = await tx.order.findUniqueOrThrow({
-        where: { id: currentPayment.orderId },
-        include: {
-          items: true,
-          payments: { orderBy: { createdAt: 'desc' } },
-        },
-      });
+        if (
+          currentPayment.providerPaymentId &&
+          currentPayment.providerPaymentId !== input.providerPaymentId
+        ) {
+          throw new BadRequestException(
+            'Payment was already captured with a different payment id.',
+          );
+        }
 
-      return {
-        order: finalizedOrder,
-        transitionedToPlaced,
-      };
-    });
+        await tx.payment.update({
+          where: { id: currentPayment.id },
+          data: {
+            status: PaymentStatus.CAPTURED,
+            providerPaymentId: input.providerPaymentId,
+            providerSignature:
+              input.providerSignature ?? currentPayment.providerSignature,
+            rawPayload: input.rawPayload,
+          },
+        });
+
+        const updateResult = await tx.order.updateMany({
+          where: {
+            id: currentPayment.orderId,
+            status: OrderStatus.PENDING_PAYMENT,
+          },
+          data: {
+            status: OrderStatus.PLACED,
+            placedAt: new Date(),
+            cancelledAt: null,
+          },
+        });
+        const transitionedToPlaced = updateResult.count === 1;
+
+        if (transitionedToPlaced && currentPayment.order.couponId) {
+          const existingUsage = await tx.couponUsage.findFirst({
+            where: {
+              orderId: currentPayment.orderId,
+              couponId: currentPayment.order.couponId,
+            },
+            select: { id: true },
+          });
+
+          if (!existingUsage) {
+            await tx.coupon.update({
+              where: { id: currentPayment.order.couponId },
+              data: { usedCount: { increment: 1 } },
+            });
+            await tx.couponUsage.create({
+              data: {
+                couponId: currentPayment.order.couponId,
+                userId: currentPayment.order.userId,
+                orderId: currentPayment.orderId,
+              },
+            });
+          }
+        }
+
+        const finalizedOrder = await tx.order.findUniqueOrThrow({
+          where: { id: currentPayment.orderId },
+          include: {
+            items: true,
+            payments: { orderBy: { createdAt: 'desc' } },
+          },
+        });
+
+        return {
+          order: finalizedOrder,
+          transitionedToPlaced,
+        };
+      },
+    );
 
     if (transitionedToPlaced) {
-      await this.sendOrderPlacedNotification(order.userId, order.orderNumber, order.status);
+      await this.sendOrderPlacedNotification(
+        order.userId,
+        order.orderNumber,
+        order.status,
+      );
     }
+
+    this.emitOrderUpdated(order.userId, order.orderNumber, order.status);
 
     return this.serializeCheckoutOrder(order);
   }
@@ -620,7 +694,26 @@ export class OrdersService {
     }
   }
 
-  private assertCapturedAmountMatches(amount: Prisma.Decimal, rawPayload: unknown) {
+  private emitOrderUpdated(
+    userId: string,
+    orderNumber: string,
+    status: OrderStatus,
+  ) {
+    this.liveEventsService.emitCustomerOrderStatus({
+      userId,
+      orderNumber,
+      status,
+    });
+    this.liveEventsService.emitAdminOrderUpdated({
+      orderNumber,
+      status,
+    });
+  }
+
+  private assertCapturedAmountMatches(
+    amount: Prisma.Decimal,
+    rawPayload: unknown,
+  ) {
     const capturedAmount = this.extractAmountInPaise(rawPayload);
 
     if (capturedAmount === null) {
@@ -630,7 +723,9 @@ export class OrdersService {
     const expectedAmount = Math.round(amount.toNumber() * 100);
 
     if (capturedAmount !== expectedAmount) {
-      throw new BadRequestException('Captured payment amount does not match the order total.');
+      throw new BadRequestException(
+        'Captured payment amount does not match the order total.',
+      );
     }
   }
 
@@ -708,7 +803,8 @@ export class OrdersService {
       return input.eventIdHeader.trim();
     }
 
-    const createdAt = this.readJsonNumber(input.payload, 'created_at') ?? Date.now();
+    const createdAt =
+      this.readJsonNumber(input.payload, 'created_at') ?? Date.now();
 
     return [
       input.event,
@@ -830,7 +926,8 @@ export class OrdersService {
     const rawPayload = this.asJsonRecord(payment.rawPayload);
     const isMockOrder = payment.providerOrderId.startsWith('order_mock_');
     const amount =
-      this.readJsonNumber(rawPayload, 'amount') ?? Math.round(order.totalAmount.toNumber() * 100);
+      this.readJsonNumber(rawPayload, 'amount') ??
+      Math.round(order.totalAmount.toNumber() * 100);
     const keyId =
       this.readJsonString(rawPayload, 'keyId') ??
       process.env.RAZORPAY_KEY_ID ??
@@ -849,7 +946,10 @@ export class OrdersService {
     };
   }
 
-  private async resolveCheckoutCustomer(customerEmail?: string, syncSecret?: string) {
+  private async resolveCheckoutCustomer(
+    customerEmail?: string,
+    syncSecret?: string,
+  ) {
     if (!customerEmail) {
       throw new UnauthorizedException('Customer session is required.');
     }
@@ -881,7 +981,9 @@ export class OrdersService {
 
     if (!expectedSecret) {
       if (process.env.NODE_ENV === 'production') {
-        throw new InternalServerErrorException('AUTH_SYNC_SECRET is not configured.');
+        throw new InternalServerErrorException(
+          'AUTH_SYNC_SECRET is not configured.',
+        );
       }
 
       return;
@@ -892,15 +994,18 @@ export class OrdersService {
     }
   }
 
-  async findByOrderNumber(orderNumber: string, customerEmail?: string, syncSecret?: string) {
+  async findByOrderNumber(
+    orderNumber: string,
+    customerEmail?: string,
+    syncSecret?: string,
+  ) {
     const customer = await this.resolveOrderReader(customerEmail, syncSecret);
-    const order = await this.prisma.order.findUnique({
+    let order = await this.prisma.order.findUnique({
       where: { orderNumber },
       include: {
         items: true,
         payments: {
           orderBy: { createdAt: 'desc' },
-          take: 1,
         },
         coupon: {
           select: {
@@ -917,6 +1022,10 @@ export class OrdersService {
     if (customer && order.userId !== customer.id) {
       throw new NotFoundException('Order not found');
     }
+
+    order =
+      (await this.recoverPendingPaymentIfCaptured(order, customer?.id)) ??
+      order;
 
     const pickupOtp = await this.otpService.getDisplayOtpForOrder(order);
 
@@ -935,12 +1044,12 @@ export class OrdersService {
       totalAmount: order.totalAmount.toNumber(),
       couponCode: order.coupon?.code ?? null,
       pickupOtp,
-      payment: order.payments[0]
+      payment: getDisplayPayment(order.payments)
         ? {
-            status: order.payments[0].status,
-            provider: order.payments[0].provider,
-            paymentId: order.payments[0].providerPaymentId,
-            amount: order.payments[0].amount.toNumber(),
+            status: getDisplayPayment(order.payments)!.status,
+            provider: getDisplayPayment(order.payments)!.provider,
+            paymentId: getDisplayPayment(order.payments)!.providerPaymentId,
+            amount: getDisplayPayment(order.payments)!.amount.toNumber(),
           }
         : null,
       items: order.items.map((item) => ({
@@ -954,7 +1063,11 @@ export class OrdersService {
     };
   }
 
-  async findRecentOrders(query: ListOrdersQuery, customerEmail?: string, syncSecret?: string) {
+  async findRecentOrders(
+    query: ListOrdersQuery,
+    customerEmail?: string,
+    syncSecret?: string,
+  ) {
     const customer = await this.resolveOrderReader(customerEmail, syncSecret);
     const where: Prisma.OrderWhereInput = {
       AND: [
@@ -963,8 +1076,16 @@ export class OrdersService {
         query.search
           ? {
               OR: [
-                { orderNumber: { contains: query.search, mode: 'insensitive' } },
-                { items: { some: { name: { contains: query.search, mode: 'insensitive' } } } },
+                {
+                  orderNumber: { contains: query.search, mode: 'insensitive' },
+                },
+                {
+                  items: {
+                    some: {
+                      name: { contains: query.search, mode: 'insensitive' },
+                    },
+                  },
+                },
               ],
             }
           : {},
@@ -977,20 +1098,35 @@ export class OrdersService {
         orderBy: { createdAt: 'desc' },
         skip: (query.page - 1) * query.limit,
         take: query.limit,
-      include: {
-        items: true,
-      },
+        include: {
+          items: true,
+          payments: {
+            orderBy: { createdAt: 'desc' },
+          },
+        },
       }),
       this.prisma.order.count({ where }),
     ]);
+    const recoveredOrders = await Promise.all(
+      orders.map(async (order) => {
+        return (
+          (await this.recoverPendingPaymentIfCaptured(order, customer.id)) ??
+          order
+        );
+      }),
+    );
+    const visibleOrders = query.status
+      ? recoveredOrders.filter((order) => order.status === query.status)
+      : recoveredOrders;
 
     return {
-      data: orders.map((order) => ({
+      data: visibleOrders.map((order) => ({
         id: order.id,
         orderNumber: order.orderNumber,
         status: order.status,
         statusLabel: getOrderStatusLabel(order.status),
-        placedAt: order.placedAt?.toISOString() ?? order.createdAt.toISOString(),
+        placedAt:
+          order.placedAt?.toISOString() ?? order.createdAt.toISOString(),
         pickupTime: order.pickupTime?.toISOString(),
         totalAmount: order.totalAmount.toNumber(),
         itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
@@ -1012,10 +1148,26 @@ export class OrdersService {
         query.search
           ? {
               OR: [
-                { orderNumber: { contains: query.search, mode: 'insensitive' } },
-                { user: { email: { contains: query.search, mode: 'insensitive' } } },
-                { user: { name: { contains: query.search, mode: 'insensitive' } } },
-                { items: { some: { name: { contains: query.search, mode: 'insensitive' } } } },
+                {
+                  orderNumber: { contains: query.search, mode: 'insensitive' },
+                },
+                {
+                  user: {
+                    email: { contains: query.search, mode: 'insensitive' },
+                  },
+                },
+                {
+                  user: {
+                    name: { contains: query.search, mode: 'insensitive' },
+                  },
+                },
+                {
+                  items: {
+                    some: {
+                      name: { contains: query.search, mode: 'insensitive' },
+                    },
+                  },
+                },
               ],
             }
           : {},
@@ -1030,6 +1182,9 @@ export class OrdersService {
         take: query.limit,
         include: {
           items: true,
+          payments: {
+            orderBy: { createdAt: 'desc' },
+          },
           user: {
             select: {
               name: true,
@@ -1040,14 +1195,23 @@ export class OrdersService {
       }),
       this.prisma.order.count({ where }),
     ]);
+    const recoveredOrders = await Promise.all(
+      orders.map(async (order) => {
+        return (await this.recoverPendingPaymentIfCaptured(order)) ?? order;
+      }),
+    );
+    const visibleOrders = query.status
+      ? recoveredOrders.filter((order) => order.status === query.status)
+      : recoveredOrders;
 
     return {
-      data: orders.map((order) => ({
+      data: visibleOrders.map((order) => ({
         id: order.id,
         orderNumber: order.orderNumber,
         status: order.status,
         statusLabel: getOrderStatusLabel(order.status),
-        placedAt: order.placedAt?.toISOString() ?? order.createdAt.toISOString(),
+        placedAt:
+          order.placedAt?.toISOString() ?? order.createdAt.toISOString(),
         pickupTime: order.pickupTime?.toISOString(),
         totalAmount: order.totalAmount.toNumber(),
         itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
@@ -1063,6 +1227,78 @@ export class OrdersService {
         total,
         totalPages: Math.ceil(total / query.limit),
       },
+      allowedStatusUpdates: ADMIN_STATUS_UPDATES,
+    };
+  }
+
+  async findAdminOrderByNumber(orderNumber: string) {
+    let order = await this.prisma.order.findUnique({
+      where: { orderNumber },
+      include: {
+        items: true,
+        payments: {
+          orderBy: { createdAt: 'desc' },
+        },
+        coupon: {
+          select: {
+            code: true,
+          },
+        },
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    order = (await this.recoverPendingPaymentIfCaptured(order)) ?? order;
+
+    const pickupOtp = await this.otpService.getDisplayOtpForOrder(order);
+
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      statusLabel: getOrderStatusLabel(order.status),
+      timeline: buildOrderTimeline(order),
+      pickupTime: order.pickupTime?.toISOString(),
+      placedAt: order.placedAt?.toISOString() ?? order.createdAt.toISOString(),
+      completedAt: order.completedAt?.toISOString(),
+      cancelledAt: order.cancelledAt?.toISOString(),
+      subtotalAmount: order.subtotalAmount.toNumber(),
+      taxAmount: order.taxAmount.toNumber(),
+      discountAmount: order.discountAmount.toNumber(),
+      totalAmount: order.totalAmount.toNumber(),
+      couponCode: order.coupon?.code ?? null,
+      pickupOtp,
+      customer: {
+        name: order.user.name,
+        email: order.user.email,
+      },
+      payment: getDisplayPayment(order.payments)
+        ? {
+            status: getDisplayPayment(order.payments)!.status,
+            provider: getDisplayPayment(order.payments)!.provider,
+            paymentId: getDisplayPayment(order.payments)!.providerPaymentId,
+            providerOrderId: getDisplayPayment(order.payments)!.providerOrderId,
+            amount: getDisplayPayment(order.payments)!.amount.toNumber(),
+            currency: getDisplayPayment(order.payments)!.currency,
+          }
+        : null,
+      items: order.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        note: item.note,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice.toNumber(),
+        totalPrice: item.totalPrice.toNumber(),
+      })),
       allowedStatusUpdates: ADMIN_STATUS_UPDATES,
     };
   }
@@ -1107,16 +1343,32 @@ export class OrdersService {
       },
     });
 
+    if (
+      updatedOrder.status === OrderStatus.READY_FOR_PICKUP ||
+      updatedOrder.status === OrderStatus.OTP_VERIFICATION_PENDING
+    ) {
+      await this.otpService.generateForOrderNumber(updatedOrder.orderNumber);
+    }
+
     await this.notificationsService.create({
       userId: updatedOrder.userId,
       type: getNotificationTypeForStatus(updatedOrder.status),
       title: getNotificationTitleForStatus(updatedOrder.status),
-      message: getNotificationMessageForStatus(updatedOrder.orderNumber, updatedOrder.status),
+      message: getNotificationMessageForStatus(
+        updatedOrder.orderNumber,
+        updatedOrder.status,
+      ),
       metadata: {
         orderNumber: updatedOrder.orderNumber,
         status: updatedOrder.status,
       },
     });
+
+    this.emitOrderUpdated(
+      updatedOrder.userId,
+      updatedOrder.orderNumber,
+      updatedOrder.status,
+    );
 
     return {
       id: updatedOrder.id,
@@ -1132,12 +1384,12 @@ export class OrdersService {
       discountAmount: updatedOrder.discountAmount.toNumber(),
       totalAmount: updatedOrder.totalAmount.toNumber(),
       couponCode: updatedOrder.coupon?.code ?? null,
-      payment: updatedOrder.payments[0]
+      payment: getDisplayPayment(updatedOrder.payments)
         ? {
-            status: updatedOrder.payments[0].status,
-            provider: updatedOrder.payments[0].provider,
-            paymentId: updatedOrder.payments[0].providerPaymentId,
-            amount: updatedOrder.payments[0].amount.toNumber(),
+            status: getDisplayPayment(updatedOrder.payments)!.status,
+            provider: getDisplayPayment(updatedOrder.payments)!.provider,
+            paymentId: getDisplayPayment(updatedOrder.payments)!.providerPaymentId,
+            amount: getDisplayPayment(updatedOrder.payments)!.amount.toNumber(),
           }
         : null,
       items: updatedOrder.items.map((item) => ({
@@ -1151,7 +1403,91 @@ export class OrdersService {
     };
   }
 
-  private async resolveOrderReader(customerEmail?: string, syncSecret?: string) {
+  private async recoverPendingPaymentIfCaptured(
+    order: {
+      id: string;
+      orderNumber: string;
+      userId: string;
+      status: OrderStatus;
+      payments: Array<{
+        providerOrderId: string | null;
+        providerPaymentId: string | null;
+      }>;
+    },
+    userId?: string,
+  ) {
+    if (order.status !== OrderStatus.PENDING_PAYMENT) {
+      return null;
+    }
+
+    const providerOrderIds = [
+      ...new Set(
+        order.payments
+          .map((item) => item.providerOrderId)
+          .filter(
+            (providerOrderId): providerOrderId is string =>
+              Boolean(providerOrderId) &&
+              !providerOrderId!.startsWith('order_mock_'),
+          ),
+      ),
+    ];
+
+    if (providerOrderIds.length === 0) {
+      return null;
+    }
+
+    for (const providerOrderId of providerOrderIds) {
+      try {
+        const recoveredPayment =
+          await this.paymentsService.findCapturedPaymentForOrder(
+            providerOrderId,
+            1,
+          );
+
+        await this.finalizePaidOrder({
+          userId,
+          orderNumber: order.orderNumber,
+          providerOrderId,
+          providerPaymentId: recoveredPayment.paymentId,
+          rawPayload: recoveredPayment.rawPayload,
+        });
+
+        return this.prisma.order.findUnique({
+          where: { id: order.id },
+          include: {
+            items: true,
+            payments: {
+              orderBy: { createdAt: 'desc' },
+            },
+            coupon: {
+              select: {
+                code: true,
+              },
+            },
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Pending payment recovery skipped for ${order.orderNumber}/${providerOrderId}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    return null;
+  }
+
+  private async resolveOrderReader(
+    customerEmail?: string,
+    syncSecret?: string,
+  ) {
     if (!customerEmail) {
       throw new UnauthorizedException('Customer session is required.');
     }
@@ -1172,7 +1508,6 @@ export class OrdersService {
 
     return user;
   }
-
 }
 
 const ORDER_TIMELINE: Array<{
@@ -1240,7 +1575,19 @@ function buildOrderTimeline(order: {
   });
 }
 
+function getDisplayPayment<T extends { status: PaymentStatus }>(payments: T[]) {
+  return (
+    payments.find((payment) => payment.status === PaymentStatus.CAPTURED) ??
+    payments[0] ??
+    null
+  );
+}
+
 function getOrderStatusLabel(status: OrderStatus) {
+  if (status === OrderStatus.OTP_VERIFICATION_PENDING) {
+    return 'Ready For Pickup';
+  }
+
   return status
     .split('_')
     .map((word) => word[0] + word.slice(1).toLowerCase())
@@ -1281,7 +1628,10 @@ function getNotificationTitleForStatus(status: OrderStatus) {
   }
 }
 
-function getNotificationMessageForStatus(orderNumber: string, status: OrderStatus) {
+function getNotificationMessageForStatus(
+  orderNumber: string,
+  status: OrderStatus,
+) {
   switch (status) {
     case OrderStatus.CONFIRMED:
       return `Your order ${orderNumber} has been confirmed.`;
