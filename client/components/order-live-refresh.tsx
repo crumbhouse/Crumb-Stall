@@ -24,7 +24,11 @@ export function OrderLiveRefresh({
     };
 
     const liveEvents = new EventSource(streamUrl);
-    liveEvents.onmessage = refreshWhenVisible;
+    liveEvents.onmessage = (event) => {
+      if (shouldRefresh(event.data)) {
+        refreshWhenVisible();
+      }
+    };
     document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
@@ -34,4 +38,18 @@ export function OrderLiveRefresh({
   }, [active, router, streamUrl]);
 
   return null;
+}
+
+function shouldRefresh(data: string) {
+  try {
+    const event = JSON.parse(data) as { type?: string };
+
+    return (
+      event.type === "notification" ||
+      event.type === "order-status" ||
+      event.type === "admin-order-updated"
+    );
+  } catch {
+    return true;
+  }
 }

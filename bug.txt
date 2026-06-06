@@ -247,3 +247,4 @@ New bugs:
  GET /api/live/customer 500 in 5.0min (next.js: 1328µs, application-code: 5.0min)
  GET /api/live/customer 500 in 5.0min (next.js: 35ms, application-code: 5.0min)
 
+Status: Addressed. The backend SSE streams now send heartbeat events every 25 seconds so the Next.js proxy/fetch body does not sit idle long enough to hit the undici body timeout. Customer/admin live listeners ignore `connected` and `heartbeat` events, so the heartbeat keeps the stream alive without causing page refreshes or notification polling.

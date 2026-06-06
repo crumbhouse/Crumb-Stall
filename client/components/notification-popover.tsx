@@ -39,8 +39,10 @@ export function NotificationPopover() {
 
     void loadNotifications({ showLoading: true });
     const liveEvents = new EventSource("/api/live/customer");
-    liveEvents.onmessage = () => {
-      void loadNotifications();
+    liveEvents.onmessage = (event) => {
+      if (isNotificationEvent(event.data)) {
+        void loadNotifications();
+      }
     };
 
     return () => liveEvents.close();
@@ -206,6 +208,16 @@ export function NotificationPopover() {
       ) : null}
     </div>
   );
+}
+
+function isNotificationEvent(data: string) {
+  try {
+    const event = JSON.parse(data) as { type?: string };
+
+    return event.type === "notification";
+  } catch {
+    return true;
+  }
 }
 
 function NotificationItem({

@@ -1,6 +1,6 @@
 import { Injectable, MessageEvent } from '@nestjs/common';
 import { OrderStatus } from '@prisma/client';
-import { Observable, Subject, filter, map, startWith } from 'rxjs';
+import { Observable, Subject, filter, interval, map, merge, startWith } from 'rxjs';
 
 type BaseLiveEvent = {
   createdAt: string;
@@ -11,13 +11,13 @@ type BaseLiveEvent = {
 type CustomerLiveEvent = BaseLiveEvent & {
   scope: 'customer';
   userId: string;
-  type: 'notification' | 'order-status';
+  type: 'connected' | 'heartbeat' | 'notification' | 'order-status';
   notificationId?: string;
 };
 
 type AdminLiveEvent = BaseLiveEvent & {
   scope: 'admin';
-  type: 'admin-order-updated';
+  type: 'admin-order-updated' | 'connected' | 'heartbeat';
 };
 
 type LiveEvent = CustomerLiveEvent | AdminLiveEvent;
@@ -27,17 +27,21 @@ export class LiveEventsService {
   private readonly events$ = new Subject<LiveEvent>();
 
   customerEvents(userId: string): Observable<MessageEvent> {
-    return this.events$.pipe(
-      filter(
-        (event): event is CustomerLiveEvent =>
-          event.scope === 'customer' && event.userId === userId,
+    return merge(
+      this.events$.pipe(
+        filter(
+          (event): event is CustomerLiveEvent =>
+            event.scope === 'customer' && event.userId === userId,
+        ),
       ),
+      this.heartbeat('customer', userId),
+    ).pipe(
       map((event) => toMessageEvent(event)),
       startWith(
         toMessageEvent({
           scope: 'customer',
           userId,
-          type: 'notification',
+          type: 'connected',
           createdAt: new Date().toISOString(),
         }),
       ),
@@ -45,13 +49,17 @@ export class LiveEventsService {
   }
 
   adminEvents(): Observable<MessageEvent> {
-    return this.events$.pipe(
-      filter((event): event is AdminLiveEvent => event.scope === 'admin'),
+    return merge(
+      this.events$.pipe(
+        filter((event): event is AdminLiveEvent => event.scope === 'admin'),
+      ),
+      this.heartbeat('admin'),
+    ).pipe(
       map((event) => toMessageEvent(event)),
       startWith(
         toMessageEvent({
           scope: 'admin',
-          type: 'admin-order-updated',
+          type: 'connected',
           createdAt: new Date().toISOString(),
         }),
       ),
@@ -98,6 +106,22 @@ export class LiveEventsService {
       status: input.status,
       createdAt: new Date().toISOString(),
     });
+  }
+
+  private heartbeat(scope: 'admin'): Observable<AdminLiveEvent>;
+  private heartbeat(
+    scope: 'customer',
+    userId: string,
+  ): Observable<CustomerLiveEvent>;
+  private heartbeat(scope: 'admin' | 'customer', userId?: string) {
+    return interval(25_000).pipe(
+      map(() => ({
+        scope,
+        ...(scope === 'customer' ? { userId: userId! } : {}),
+        type: 'heartbeat',
+        createdAt: new Date().toISOString(),
+      })),
+    );
   }
 }
 
