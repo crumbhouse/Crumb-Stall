@@ -13,6 +13,7 @@ export type FoodItem = {
   name: string;
   slug: string;
   description: string;
+  ingredients: string[];
   price: number;
   discountPrice: number | null;
   finalPrice: number;
@@ -67,6 +68,7 @@ export const fallbackFoods: FoodItem[] = [
     name: "Classic Veg Burger",
     slug: "classic-veg-burger",
     description: "Crispy patty, fresh veggies, and house sauce in a toasted bun.",
+    ingredients: ["Crispy patty", "Fresh veggies", "House sauce"],
     price: 89,
     discountPrice: 79,
     finalPrice: 79,
@@ -86,6 +88,7 @@ export const fallbackFoods: FoodItem[] = [
     name: "Steamed Momos",
     slug: "steamed-momos",
     description: "Soft steamed momos served with spicy chutney.",
+    ingredients: ["Steamed dumpling", "Spicy chutney"],
     price: 69,
     discountPrice: null,
     finalPrice: 69,
@@ -105,6 +108,7 @@ export const fallbackFoods: FoodItem[] = [
     name: "Cold Coffee",
     slug: "cold-coffee",
     description: "Chilled coffee blended smooth for a quick recharge.",
+    ingredients: ["Coffee", "Milk", "Ice"],
     price: 79,
     discountPrice: null,
     finalPrice: 79,
@@ -124,6 +128,7 @@ export const fallbackFoods: FoodItem[] = [
     name: "Burger + Coffee Combo",
     slug: "burger-coffee-combo",
     description: "A filling burger with cold coffee at a student-friendly price.",
+    ingredients: ["Veg burger", "Cold coffee"],
     price: 159,
     discountPrice: 139,
     finalPrice: 139,

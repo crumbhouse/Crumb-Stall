@@ -92,7 +92,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 
 ## Next Task
 
-- [ ] Add category CRUD UI.
+- [ ] Add image upload flow for food images.
 
 ## Customer Flow
 
@@ -142,8 +142,8 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Connect admin dashboard to real analytics.
 - [x] Add hidden admin credentials login and approval request flow.
 - [x] Add super-admin admin approval page.
-- [ ] Add category CRUD UI.
-- [ ] Add food item CRUD UI.
+- [x] Add category CRUD UI.
+- [x] Add food item CRUD UI.
 - [ ] Add image upload flow for food images.
 - [ ] Add availability/inventory toggles.
 - [ ] Add order management with status updates.

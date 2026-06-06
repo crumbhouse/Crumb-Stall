@@ -1,32 +1,28 @@
 import { AdminShell } from "@/components/admin-shell";
-import { fallbackFoods } from "@/lib/catalog";
+import { CategoryManager } from "@/components/admin/category-manager";
+import { FoodManager } from "@/components/admin/food-manager";
+import { getAdminCategories } from "@/lib/admin-categories-server";
+import { getAdminFoods } from "@/lib/admin-foods-server";
 
-export default function AdminMenuPage() {
+export default async function AdminMenuPage() {
+  const [categories, foods] = await Promise.all([
+    getAdminCategories(),
+    getAdminFoods(),
+  ]);
+
   return (
     <AdminShell>
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-orange-600">Catalog</p>
           <h1 className="mt-2 text-3xl font-black">Menu management</h1>
+          <p className="mt-2 max-w-2xl text-sm font-semibold text-stone-500">
+            Create and organize the category groups customers see on the QR menu.
+          </p>
         </div>
-        <button className="rounded-full bg-stone-950 px-5 py-3 text-sm font-black text-white">
-          Add item
-        </button>
       </div>
-      <div className="mt-6 overflow-hidden rounded-lg bg-white shadow-sm">
-        {fallbackFoods.map((item) => (
-          <div key={item.id} className="grid gap-4 border-b border-stone-100 p-4 last:border-0 sm:grid-cols-[1fr_120px_120px] sm:items-center">
-            <div>
-              <p className="font-black">{item.name}</p>
-              <p className="text-sm text-stone-500">{item.category.name}</p>
-            </div>
-            <p className="font-black">Rs {item.finalPrice}</p>
-            <span className="w-fit rounded-full bg-green-50 px-3 py-1 text-xs font-black text-green-700">
-              Available
-            </span>
-          </div>
-        ))}
-      </div>
+      <CategoryManager categories={categories} />
+      <FoodManager categories={categories} foods={foods} />
     </AdminShell>
   );
 }

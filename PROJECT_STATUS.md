@@ -102,10 +102,12 @@ Last updated: 2026-06-06
 - Connected the admin dashboard and analytics page to real analytics data, including live summary cards, revenue trend bars, best sellers, and live queue snapshots.
 - Fixed server-rendered order history and tracking pages so their internal API requests forward the logged-in user's Auth.js cookies.
 - Completed the current `bug.txt` pass: upgraded invoice PDF styling, added customer order live refresh, tightened notification polling, clarified ready/OTP handover, added admin order detail pages, redesigned admin login, added pending-payment detail recovery, and introduced 401/403/404 route handling.
+- Added admin category management with protected backend create/update/deactivate APIs, Next.js admin proxies, and a real `/admin/menu` category CRUD UI.
+- Added admin food item management with protected backend create/update/deactivate APIs, Next.js admin proxies, and `/admin/menu` food item CRUD for category, pricing, image URL, tags, ingredients, veg/non-veg, featured, popularity, and availability.
 
 ## Current Next Task
 
-- Add category CRUD UI.
+- Add image upload flow for food images.
 
 ## Local Setup Steps For You
 

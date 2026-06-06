@@ -1,4 +1,19 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+import { AuthenticatedUserGuard } from '../../common/auth/authenticated-user.guard';
+import { Roles } from '../../common/auth/roles.decorator';
+import { RolesGuard } from '../../common/auth/roles.guard';
+import { CreateFoodItemDto, UpdateFoodItemDto } from './dto/food-input.dto';
 import { parseListFoodQuery } from './dto/list-food-query.dto';
 import { FoodService } from './food.service';
 
@@ -19,6 +34,37 @@ export class FoodController {
   @Get('popular')
   findPopular() {
     return this.foodService.findPopular();
+  }
+
+  @Get('admin')
+  @UseGuards(AuthenticatedUserGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  findAllForAdmin() {
+    return this.foodService.findAllForAdmin();
+  }
+
+  @Post()
+  @UseGuards(AuthenticatedUserGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  create(@Body() body: CreateFoodItemDto) {
+    return this.foodService.create(body);
+  }
+
+  @Patch(':foodItemId')
+  @UseGuards(AuthenticatedUserGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  update(
+    @Param('foodItemId') foodItemId: string,
+    @Body() body: UpdateFoodItemDto,
+  ) {
+    return this.foodService.update(foodItemId, body);
+  }
+
+  @Delete(':foodItemId')
+  @UseGuards(AuthenticatedUserGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  deactivate(@Param('foodItemId') foodItemId: string) {
+    return this.foodService.deactivate(foodItemId);
   }
 
   @Get(':slug')
