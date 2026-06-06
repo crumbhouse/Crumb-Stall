@@ -2,7 +2,7 @@
 
 This document tracks completed implementation work and the setup steps the project owner needs to do locally. `TODO.md` remains the forward-looking task list; this file is the handoff/status record.
 
-Last updated: 2026-06-06
+Last updated: 2026-06-07
 
 ## Completed Work
 
@@ -108,10 +108,11 @@ Last updated: 2026-06-06
 - Added quick admin menu operations for item availability/inventory state and featured placement. Staff can hide/show items from the customer menu and feature/unfeature items without saving the full food form.
 - Hardened admin order status management with per-order allowed transitions. Admins can move orders through valid operational steps only, terminal orders cannot be reopened manually, and completion remains OTP-only.
 - Simplified the active order flow by treating paid/placed orders as the same operational state. Admins now move paid/placed orders directly to preparing or cancelled; the separate confirmed step remains supported only for legacy orders already in that state.
+- Added admin coupon management with protected backend list/create/update/deactivate APIs, Next.js admin proxies, and a real `/admin/coupons` CRUD UI for code, discount type/value, minimum amount, validity window, usage limit, and active state.
 
 ## Current Next Task
 
-- Add OTP handover verification panel.
+- Add review moderation UI.
 
 ## Local Setup Steps For You
 

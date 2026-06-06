@@ -77,6 +77,8 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Remove exposed legacy checkout route that could skip pending-order creation.
 - [x] Add order status update APIs.
 - [x] Add OTP generation, hashing, expiry, attempts, and verification APIs.
+- [x] Add OTP handover verification panel.
+- [x] Add coupon CRUD UI.
 - [x] Add notifications APIs.
 - [x] Add customer notifications popover UI.
 - [x] Add recommendation APIs.
@@ -92,7 +94,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 
 ## Next Task
 
-- [ ] Add OTP handover verification panel.
+- [ ] Add review moderation UI.
 
 ## Customer Flow
 
@@ -147,8 +149,8 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add image upload flow for food images.
 - [x] Add availability/inventory toggles.
 - [x] Add order management with status updates.
-- [ ] Add OTP handover verification panel.
-- [ ] Add coupon CRUD UI.
+- [x] Add OTP handover verification panel.
+- [x] Add coupon CRUD UI.
 - [ ] Add review moderation UI.
 - [ ] Add customer insights page.
 - [ ] Add reports export UI.
