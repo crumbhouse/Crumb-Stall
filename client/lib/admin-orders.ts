@@ -12,6 +12,7 @@ export type AdminOrderSummary = {
     name: string | null;
     email: string;
   };
+  allowedStatusUpdates: string[];
 };
 
 export type AdminOrdersResponse = {

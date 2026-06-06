@@ -50,7 +50,7 @@ export async function getAdminOrders({
     } satisfies AdminOrdersResponse;
   }
 
-  return (await response.json()) as AdminOrdersResponse;
+  return normalizeAdminOrdersResponse(await response.json(), page);
 }
 
 export async function getAdminOrder(orderNumber: string): Promise<AdminOrderLookupResult> {
@@ -74,13 +74,48 @@ export async function getAdminOrder(orderNumber: string): Promise<AdminOrderLook
   }
 
   return {
-    order: (await response.json()) as AdminOrderDetail,
+    order: normalizeAdminOrderDetail(await response.json()),
     error: null,
   };
 }
 
 function getAppUrl() {
   return process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+}
+
+function normalizeAdminOrdersResponse(payload: unknown, page: number): AdminOrdersResponse {
+  const candidate = payload as Partial<AdminOrdersResponse>;
+
+  return {
+    data: Array.isArray(candidate.data)
+      ? candidate.data.map((order) => ({
+          ...order,
+          allowedStatusUpdates: Array.isArray(order.allowedStatusUpdates)
+            ? order.allowedStatusUpdates
+            : [],
+        }))
+      : [],
+    meta: {
+      page: Number(candidate.meta?.page) || page,
+      limit: Number(candidate.meta?.limit) || 20,
+      total: Number(candidate.meta?.total) || 0,
+      totalPages: Number(candidate.meta?.totalPages) || 0,
+    },
+    allowedStatusUpdates: Array.isArray(candidate.allowedStatusUpdates)
+      ? candidate.allowedStatusUpdates
+      : [],
+  };
+}
+
+function normalizeAdminOrderDetail(payload: unknown): AdminOrderDetail {
+  const order = payload as AdminOrderDetail;
+
+  return {
+    ...order,
+    allowedStatusUpdates: Array.isArray(order.allowedStatusUpdates)
+      ? order.allowedStatusUpdates
+      : [],
+  };
 }
 
 async function readErrorMessage(response: Response) {

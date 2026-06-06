@@ -248,3 +248,11 @@ New bugs:
  GET /api/live/customer 500 in 5.0min (next.js: 35ms, application-code: 5.0min)
 
 Status: Addressed. The backend SSE streams now send heartbeat events every 25 seconds so the Next.js proxy/fetch body does not sit idle long enough to hit the undici body timeout. Customer/admin live listeners ignore `connected` and `heartbeat` events, so the heartbeat keeps the stream alive without causing page refreshes or notification polling.
+
+2. When selecting any category on the menu page, the category section disappears and the category cannot be reselected without reloading the page.
+
+Status: Addressed. Category selection no longer counts as the kind of filter that hides the category card section, and search/quick-filter results now include a compact category rail so users can switch categories without leaving the filtered results view.
+
+3. In the admin order management page, placed orders still show as placed but there is no option to change the status.
+
+Status: Addressed. The admin status control now falls back to the known valid transitions for `PAID`/`PLACED` orders when the API sends an empty transition list, so placed orders can be moved to `Preparing` or `Cancelled`.

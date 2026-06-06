@@ -27,12 +27,17 @@ import {
 import { ListOrdersQuery } from './dto/list-orders-query.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
-const ADMIN_STATUS_UPDATES: OrderStatus[] = [
-  OrderStatus.CONFIRMED,
-  OrderStatus.PREPARING,
-  OrderStatus.READY_FOR_PICKUP,
-  OrderStatus.CANCELLED,
-];
+const ADMIN_STATUS_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
+  [OrderStatus.PAID]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+  [OrderStatus.PLACED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+  [OrderStatus.CONFIRMED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+  [OrderStatus.PREPARING]: [
+    OrderStatus.READY_FOR_PICKUP,
+    OrderStatus.CANCELLED,
+  ],
+  [OrderStatus.READY_FOR_PICKUP]: [OrderStatus.CANCELLED],
+  [OrderStatus.OTP_VERIFICATION_PENDING]: [OrderStatus.CANCELLED],
+};
 
 type PreparedCheckoutOrder = {
   orderItems: Array<{
@@ -1220,6 +1225,7 @@ export class OrdersService {
           name: order.user.name,
           email: order.user.email,
         },
+        allowedStatusUpdates: getAllowedStatusUpdates(order.status),
       })),
       meta: {
         page: query.page,
@@ -1227,7 +1233,7 @@ export class OrdersService {
         total,
         totalPages: Math.ceil(total / query.limit),
       },
-      allowedStatusUpdates: ADMIN_STATUS_UPDATES,
+      allowedStatusUpdates: [],
     };
   }
 
@@ -1299,17 +1305,11 @@ export class OrdersService {
         unitPrice: item.unitPrice.toNumber(),
         totalPrice: item.totalPrice.toNumber(),
       })),
-      allowedStatusUpdates: ADMIN_STATUS_UPDATES,
+      allowedStatusUpdates: getAllowedStatusUpdates(order.status),
     };
   }
 
   async updateStatus(orderNumber: string, input: UpdateOrderStatusDto) {
-    if (!ADMIN_STATUS_UPDATES.includes(input.status)) {
-      throw new BadRequestException(
-        `status must be one of: ${ADMIN_STATUS_UPDATES.join(', ')}`,
-      );
-    }
-
     const order = await this.prisma.order.findUnique({
       where: { orderNumber },
       select: {
@@ -1320,6 +1320,14 @@ export class OrdersService {
 
     if (!order) {
       throw new NotFoundException('Order not found');
+    }
+
+    const allowedStatusUpdates = getAllowedStatusUpdates(order.status);
+
+    if (!allowedStatusUpdates.includes(input.status)) {
+      throw new BadRequestException(
+        `Cannot move order from ${order.status} to ${input.status}.`,
+      );
     }
 
     const updatedOrder = await this.prisma.order.update({
@@ -1521,11 +1529,6 @@ const ORDER_TIMELINE: Array<{
     description: 'We received your paid pickup order.',
   },
   {
-    status: OrderStatus.CONFIRMED,
-    label: 'Confirmed',
-    description: 'The stall accepted your order.',
-  },
-  {
     status: OrderStatus.PREPARING,
     label: 'Preparing',
     description: 'Your food is being prepared.',
@@ -1583,7 +1586,15 @@ function getDisplayPayment<T extends { status: PaymentStatus }>(payments: T[]) {
   );
 }
 
+function getAllowedStatusUpdates(status: OrderStatus) {
+  return ADMIN_STATUS_TRANSITIONS[status] ?? [];
+}
+
 function getOrderStatusLabel(status: OrderStatus) {
+  if (status === OrderStatus.PAID) {
+    return 'Placed';
+  }
+
   if (status === OrderStatus.OTP_VERIFICATION_PENDING) {
     return 'Ready For Pickup';
   }

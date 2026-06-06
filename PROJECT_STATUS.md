@@ -106,10 +106,12 @@ Last updated: 2026-06-06
 - Added admin food item management with protected backend create/update/deactivate APIs, Next.js admin proxies, and `/admin/menu` food item CRUD for category, pricing, image URL, tags, ingredients, veg/non-veg, featured, popularity, and availability.
 - Added a local admin food-image upload flow. Admins can upload JPG, PNG, or WebP images up to 5MB from `/admin/menu`; files are stored under `client/public/uploads/foods` and the returned `/uploads/foods/...` URL is saved on the food item. Cloudflare R2 remains the later production storage task.
 - Added quick admin menu operations for item availability/inventory state and featured placement. Staff can hide/show items from the customer menu and feature/unfeature items without saving the full food form.
+- Hardened admin order status management with per-order allowed transitions. Admins can move orders through valid operational steps only, terminal orders cannot be reopened manually, and completion remains OTP-only.
+- Simplified the active order flow by treating paid/placed orders as the same operational state. Admins now move paid/placed orders directly to preparing or cancelled; the separate confirmed step remains supported only for legacy orders already in that state.
 
 ## Current Next Task
 
-- Add order management with status updates.
+- Add OTP handover verification panel.
 
 ## Local Setup Steps For You
 

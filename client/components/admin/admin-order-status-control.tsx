@@ -5,12 +5,22 @@ import { useState, useTransition } from "react";
 import { updateAdminOrderStatus } from "@/lib/admin-orders";
 
 const labels: Record<string, string> = {
-  CONFIRMED: "Confirmed",
+  PAID: "Placed",
+  PLACED: "Placed",
   PREPARING: "Preparing",
   READY_FOR_PICKUP: "Ready for pickup",
   OTP_VERIFICATION_PENDING: "Ready / OTP pending",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
+};
+
+const fallbackTransitions: Record<string, string[]> = {
+  PAID: ["PREPARING", "CANCELLED"],
+  PLACED: ["PREPARING", "CANCELLED"],
+  CONFIRMED: ["PREPARING", "CANCELLED"],
+  PREPARING: ["READY_FOR_PICKUP", "CANCELLED"],
+  READY_FOR_PICKUP: ["CANCELLED"],
+  OTP_VERIFICATION_PENDING: ["CANCELLED"],
 };
 
 export function AdminOrderStatusControl({
@@ -20,15 +30,19 @@ export function AdminOrderStatusControl({
 }: {
   orderNumber: string;
   currentStatus: string;
-  allowedStatuses: string[];
+  allowedStatuses?: string[];
 }) {
   const router = useRouter();
   const [status, setStatus] = useState(currentStatus);
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
-  const statusOptions = allowedStatuses.includes(currentStatus)
+  const fallbackAllowedStatuses = fallbackTransitions[currentStatus] ?? [];
+  const safeAllowedStatuses = Array.isArray(allowedStatuses) && allowedStatuses.length > 0
     ? allowedStatuses
-    : [currentStatus, ...allowedStatuses];
+    : fallbackAllowedStatuses;
+  const statusOptions = safeAllowedStatuses.includes(currentStatus)
+    ? safeAllowedStatuses
+    : [currentStatus, ...safeAllowedStatuses];
 
   function updateStatus() {
     setMessage("");
@@ -42,6 +56,14 @@ export function AdminOrderStatusControl({
         setMessage("Update failed");
       }
     });
+  }
+
+  if (safeAllowedStatuses.length === 0) {
+    return (
+      <p className="rounded-md bg-stone-100 px-3 py-2 text-xs font-black text-stone-500">
+        No manual status action
+      </p>
+    );
   }
 
   return (

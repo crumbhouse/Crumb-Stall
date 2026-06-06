@@ -92,7 +92,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 
 ## Next Task
 
-- [ ] Add order management with status updates.
+- [ ] Add OTP handover verification panel.
 
 ## Customer Flow
 
@@ -146,7 +146,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add food item CRUD UI.
 - [x] Add image upload flow for food images.
 - [x] Add availability/inventory toggles.
-- [ ] Add order management with status updates.
+- [x] Add order management with status updates.
 - [ ] Add OTP handover verification panel.
 - [ ] Add coupon CRUD UI.
 - [ ] Add review moderation UI.

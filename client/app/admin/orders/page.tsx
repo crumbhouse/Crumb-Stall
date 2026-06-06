@@ -7,8 +7,8 @@ import { getAdminOrders } from "@/lib/admin-orders-server";
 
 const statuses = [
   { value: "", label: "All statuses" },
+  { value: "PAID", label: "Placed / paid" },
   { value: "PLACED", label: "Placed" },
-  { value: "CONFIRMED", label: "Confirmed" },
   { value: "PREPARING", label: "Preparing" },
   { value: "READY_FOR_PICKUP", label: "Ready for pickup" },
   { value: "OTP_VERIFICATION_PENDING", label: "Ready / OTP pending" },
@@ -99,7 +99,7 @@ export default async function AdminOrdersPage({
               <AdminOrderStatusControl
                 orderNumber={order.orderNumber}
                 currentStatus={order.status}
-                allowedStatuses={history.allowedStatusUpdates}
+                allowedStatuses={order.allowedStatusUpdates}
               />
               {order.status === "READY_FOR_PICKUP" || order.status === "OTP_VERIFICATION_PENDING" ? (
                 <div className="rounded-lg bg-green-50 p-3 xl:col-start-4">

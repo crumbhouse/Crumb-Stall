@@ -71,7 +71,8 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
     });
   }, [activeCategory, activeFilter, foods, query, recommendedSlugs]);
 
-  const hasActiveFilters = query.trim() !== "" || activeCategory !== "all" || activeFilter !== "all";
+  const hasSearchOrQuickFilter = query.trim() !== "" || activeFilter !== "all";
+  const hasActiveFilters = hasSearchOrQuickFilter || activeCategory !== "all";
   const activeCategoryName =
     activeCategory === "all"
       ? "All categories"
@@ -272,75 +273,75 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
         </div>
       </section>
 
-      {!hasActiveFilters ? (
-      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
-              Categories
-            </p>
-            <h2 className="mt-1 text-2xl font-black">Order by craving</h2>
+      {!hasSearchOrQuickFilter ? (
+        <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+                Categories
+              </p>
+              <h2 className="mt-1 text-2xl font-black">Order by craving</h2>
+            </div>
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="rounded-full border border-[#e8e8e3] bg-white px-4 py-2 text-sm font-black text-[#555]"
+              >
+                Reset
+              </button>
+            ) : null}
           </div>
-          {hasActiveFilters ? (
+
+          <div className="mt-4 grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <button
               type="button"
-              onClick={clearFilters}
-              className="rounded-full border border-[#e8e8e3] bg-white px-4 py-2 text-sm font-black text-[#555]"
+              onClick={() => setActiveCategory("all")}
+              className={`h-full rounded-lg border p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${
+                activeCategory === "all"
+                  ? "border-[#e23744] bg-[#fff0f2]"
+                  : "border-[#e8e8e3] bg-white hover:border-[#e23744]"
+              }`}
             >
-              Reset
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-lg font-black">All items</h3>
+                <span className="rounded-md bg-[#f1f1ee] px-2 py-1 text-xs font-black text-[#555]">
+                  {foods.length}
+                </span>
+              </div>
+              <p className="mt-2 line-clamp-2 text-sm leading-5 text-[#646464]">
+                Browse the full Crumb Stall menu.
+              </p>
             </button>
-          ) : null}
-        </div>
 
-        <div className="mt-4 grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <button
-            type="button"
-            onClick={() => setActiveCategory("all")}
-            className={`h-full rounded-lg border p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${
-              activeCategory === "all"
-                ? "border-[#e23744] bg-[#fff0f2]"
-                : "border-[#e8e8e3] bg-white hover:border-[#e23744]"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-lg font-black">All items</h3>
-              <span className="rounded-md bg-[#f1f1ee] px-2 py-1 text-xs font-black text-[#555]">
-                {foods.length}
-              </span>
-            </div>
-            <p className="mt-2 line-clamp-2 text-sm leading-5 text-[#646464]">
-              Browse the full Crumb Stall menu.
-            </p>
-          </button>
+            {categories.map((category) => {
+              const isActive = activeCategory === category.slug;
 
-          {categories.map((category) => {
-            const isActive = activeCategory === category.slug;
-
-            return (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => setActiveCategory(category.slug)}
-                className={`h-full rounded-lg border p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${
-                  isActive
-                    ? "border-[#e23744] bg-[#fff0f2]"
-                    : "border-[#e8e8e3] bg-white hover:border-[#e23744]"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-lg font-black">{category.name}</h3>
-                  <span className="rounded-md bg-[#f1f1ee] px-2 py-1 text-xs font-black text-[#555]">
-                    {category.foodItemCount}
-                  </span>
-                </div>
-                <p className="mt-2 line-clamp-2 text-sm leading-5 text-[#646464]">
-                  {category.description}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => setActiveCategory(category.slug)}
+                  className={`h-full rounded-lg border p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${
+                    isActive
+                      ? "border-[#e23744] bg-[#fff0f2]"
+                      : "border-[#e8e8e3] bg-white hover:border-[#e23744]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-lg font-black">{category.name}</h3>
+                    <span className="rounded-md bg-[#f1f1ee] px-2 py-1 text-xs font-black text-[#555]">
+                      {category.foodItemCount}
+                    </span>
+                  </div>
+                  <p className="mt-2 line-clamp-2 text-sm leading-5 text-[#646464]">
+                    {category.description}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </section>
       ) : null}
 
       {!hasActiveFilters ? (
@@ -393,7 +394,50 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
               selection
             </p>
           </div>
+          {hasSearchOrQuickFilter ? (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="w-fit rounded-full border border-[#e8e8e3] bg-white px-4 py-2 text-sm font-black text-[#555] shadow-sm transition hover:border-[#e23744] hover:text-[#e23744]"
+            >
+              Reset filters
+            </button>
+          ) : null}
         </div>
+
+        {hasSearchOrQuickFilter ? (
+          <div className="mb-5 flex gap-2 overflow-x-auto pb-2">
+            <button
+              type="button"
+              onClick={() => setActiveCategory("all")}
+              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-black shadow-sm transition ${
+                activeCategory === "all"
+                  ? "border-[#e23744] bg-[#e23744] text-white"
+                  : "border-[#e8e8e3] bg-white text-[#4b4b4b] hover:border-[#e23744] hover:text-[#e23744]"
+              }`}
+            >
+              All items
+            </button>
+            {categories.map((category) => {
+              const isActive = activeCategory === category.slug;
+
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => setActiveCategory(category.slug)}
+                  className={`shrink-0 rounded-full border px-4 py-2 text-sm font-black shadow-sm transition ${
+                    isActive
+                      ? "border-[#e23744] bg-[#e23744] text-white"
+                      : "border-[#e8e8e3] bg-white text-[#4b4b4b] hover:border-[#e23744] hover:text-[#e23744]"
+                  }`}
+                >
+                  {category.name}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
 
         {filteredFoods.length === 0 ? (
           <div className="rounded-lg border border-dashed border-[#d7d7cf] bg-white p-8 text-center">
