@@ -37,7 +37,7 @@ export default async function AdminAnalyticsPage() {
         </div>
         <Link
           href="/admin/orders"
-          className="w-fit rounded-md bg-stone-950 px-4 py-3 text-sm font-black text-white"
+          className="w-fit rounded-md bg-[#171512] px-4 py-3 text-sm font-black text-white"
         >
           Manage orders
         </Link>
@@ -64,7 +64,7 @@ export default async function AdminAnalyticsPage() {
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <section className="rounded-lg bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-[#e5ddd2] bg-white p-5 shadow-sm">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
             <div>
               <h2 className="text-xl font-black">Revenue trend</h2>
@@ -77,14 +77,14 @@ export default async function AdminAnalyticsPage() {
           <RevenueBars data={trendData} />
         </section>
 
-        <section className="rounded-lg bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-[#e5ddd2] bg-white p-5 shadow-sm">
           <h2 className="text-xl font-black">Best sellers</h2>
           <p className="mt-1 text-sm font-semibold text-stone-500">Last 30 days</p>
           <TopFoodsList foods={topFoodData} />
         </section>
       </div>
 
-      <section className="mt-6 rounded-lg bg-white p-5 shadow-sm">
+      <section className="mt-6 rounded-lg border border-[#e5ddd2] bg-white p-5 shadow-sm">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
           <div>
             <h2 className="text-xl font-black">Live queue health</h2>
@@ -92,7 +92,7 @@ export default async function AdminAnalyticsPage() {
               Orders currently waiting for kitchen progress, pickup, or OTP handover.
             </p>
           </div>
-          <div className="rounded-lg bg-stone-100 px-3 py-2 text-sm font-black">
+          <div className="rounded-lg bg-[#fbfaf7] px-3 py-2 text-sm font-black">
             {queueData.length} active
           </div>
         </div>
@@ -104,9 +104,9 @@ export default async function AdminAnalyticsPage() {
 
 function MetricCard({ label, value }: { label: string; value: string }) {
   return (
-    <article className="rounded-lg bg-white p-5 shadow-sm">
-      <p className="text-sm font-bold text-stone-500">{label}</p>
-      <p className="mt-2 text-3xl font-black">{value}</p>
+    <article className="rounded-lg border border-[#e5ddd2] bg-white p-5 shadow-sm">
+      <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-400">{label}</p>
+      <p className="mt-3 text-3xl font-black">{value}</p>
     </article>
   );
 }

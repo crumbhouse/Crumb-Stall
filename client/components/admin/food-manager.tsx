@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState, useTransition } from "react";
+import { FormEvent, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
   createAdminFood,
   deactivateAdminFood,
@@ -24,160 +24,199 @@ export function FoodManager({
     () => categories.filter((category) => category.isActive),
     [categories],
   );
-  const router = useRouter();
+  const groupedFoods = useMemo(
+    () =>
+      categories
+        .map((category) => ({
+          category,
+          foods: foods.filter((food) => food.category.id === category.id),
+        }))
+        .filter((group) => group.foods.length > 0),
+    [categories, foods],
+  );
+  const uncategorizedFoods = foods.filter(
+    (food) => !categories.some((category) => category.id === food.category.id),
+  );
   const [message, setMessage] = useState("");
-  const [isPending, startTransition] = useTransition();
-
-  function createFood(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setMessage("");
-
-    const form = event.currentTarget;
-    const input = readFoodForm(new FormData(form));
-
-    startTransition(async () => {
-      try {
-        await createAdminFood(input);
-        form.reset();
-        setMessage("Food item created");
-        router.refresh();
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Food item creation failed");
-      }
-    });
-  }
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingFood, setEditingFood] = useState<AdminFoodItem | null>(null);
 
   return (
-    <div className="mt-8 grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-      <section className="h-fit rounded-lg bg-white p-5 shadow-sm">
-        <p className="text-sm font-black uppercase tracking-[0.16em] text-orange-600">
-          New food item
-        </p>
-        <h2 className="mt-2 text-2xl font-black">Add menu item</h2>
-        <form onSubmit={createFood} className="mt-5 space-y-4">
-          <FoodFields categories={activeCategories} />
-          <button
-            type="submit"
-            disabled={isPending || activeCategories.length === 0}
-            className="w-full rounded-md bg-stone-950 px-5 py-3 text-sm font-black text-white disabled:opacity-50"
-          >
-            {isPending ? "Saving..." : "Create item"}
-          </button>
-          {activeCategories.length === 0 ? (
-            <p className="text-sm font-bold text-stone-500">
-              Create an active category before adding food items.
-            </p>
-          ) : null}
-          {message ? <p className="text-sm font-black text-orange-700">{message}</p> : null}
-        </form>
-      </section>
-
-      <section className="overflow-hidden rounded-lg bg-white shadow-sm">
-        <div className="border-b border-stone-100 p-5">
+    <section className="mt-6 overflow-hidden rounded-lg border border-[#e5ddd2] bg-white shadow-sm">
+      <div className="flex flex-col justify-between gap-4 border-b border-[#eee8df] p-5 sm:flex-row sm:items-center">
+        <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-orange-600">
             Food items
           </p>
           <h2 className="mt-2 text-2xl font-black">Menu catalog</h2>
+          <p className="mt-1 text-sm font-semibold text-stone-500">
+            {foods.length} item{foods.length === 1 ? "" : "s"} across {categories.length} group
+            {categories.length === 1 ? "" : "s"}.
+          </p>
         </div>
-        {foods.length === 0 ? (
-          <div className="p-8 text-center">
-            <p className="text-xl font-black">No food items yet</p>
-            <p className="mt-2 text-sm font-semibold text-stone-500">
-              Add dishes, drinks, or combos for customers to order.
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-stone-100">
-            {foods.map((food) => (
-              <FoodRow key={food.id} food={food} categories={activeCategories} />
-            ))}
-          </div>
-        )}
-      </section>
-    </div>
+        <button
+          type="button"
+          onClick={() => setIsCreateOpen(true)}
+          disabled={activeCategories.length === 0}
+          className="w-fit rounded-md bg-[#171512] px-4 py-3 text-sm font-black text-white disabled:opacity-50"
+        >
+          Add item
+        </button>
+      </div>
+
+      {activeCategories.length === 0 ? (
+        <div className="border-b border-orange-100 bg-orange-50 px-5 py-3 text-sm font-bold text-orange-800">
+          Create an active category before adding food items.
+        </div>
+      ) : null}
+
+      {message ? (
+        <div className="border-b border-orange-100 bg-orange-50 px-5 py-3 text-sm font-black text-orange-800">
+          {message}
+        </div>
+      ) : null}
+
+      {foods.length === 0 ? (
+        <div className="p-8 text-center">
+          <p className="text-xl font-black">No food items yet</p>
+          <p className="mt-2 text-sm font-semibold text-stone-500">
+            Add dishes, drinks, or combos for customers to order.
+          </p>
+        </div>
+      ) : (
+        <div className="divide-y divide-[#eee8df]">
+          {groupedFoods.map((group) => (
+            <FoodGroup
+              key={group.category.id}
+              category={group.category}
+              foods={group.foods}
+              categories={activeCategories}
+              onEdit={setEditingFood}
+              onMessage={setMessage}
+            />
+          ))}
+          {uncategorizedFoods.length > 0 ? (
+            <FoodGroup
+              category={{
+                id: uncategorizedFoods[0].category.id,
+                name: uncategorizedFoods[0].category.name,
+                isActive: true,
+              }}
+              foods={uncategorizedFoods}
+              categories={activeCategories}
+              onEdit={setEditingFood}
+              onMessage={setMessage}
+            />
+          ) : null}
+        </div>
+      )}
+
+      {isCreateOpen ? (
+        <FoodCreateModal
+          categories={activeCategories}
+          onClose={() => setIsCreateOpen(false)}
+          onMessage={setMessage}
+        />
+      ) : null}
+
+      {editingFood ? (
+        <FoodEditModal
+          food={editingFood}
+          categories={activeCategories}
+          onClose={() => setEditingFood(null)}
+          onMessage={setMessage}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function FoodGroup({
+  category,
+  foods,
+  categories,
+  onEdit,
+  onMessage,
+}: {
+  category: Pick<AdminCategory, "id" | "name" | "isActive">;
+  foods: AdminFoodItem[];
+  categories: AdminCategory[];
+  onEdit: (food: AdminFoodItem) => void;
+  onMessage: (message: string) => void;
+}) {
+  return (
+    <section className="p-4 sm:p-5">
+      <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+        <div>
+          <h3 className="text-lg font-black">{category.name}</h3>
+          <p className="text-sm font-semibold text-stone-500">
+            {foods.length} item{foods.length === 1 ? "" : "s"} in this section
+          </p>
+        </div>
+        <StatusPill active={category.isActive} activeLabel="Active group" inactiveLabel="Inactive group" />
+      </div>
+      <div className="grid gap-3">
+        {foods.map((food) => (
+          <FoodRow
+            key={food.id}
+            food={food}
+            categories={categories}
+            onEdit={() => onEdit(food)}
+            onMessage={onMessage}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 
 function FoodRow({
   food,
-  categories,
+  onEdit,
+  onMessage,
 }: {
   food: AdminFoodItem;
   categories: AdminCategory[];
+  onEdit: () => void;
+  onMessage: (message: string) => void;
 }) {
   const router = useRouter();
-  const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
+  const imageUrl = food.imageUrl;
 
-  function updateFood(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setMessage("");
-
-    const input = readFoodForm(new FormData(event.currentTarget));
-
+  function updateFlags(input: Partial<FoodItemInput>, successMessage: string) {
     startTransition(async () => {
       try {
         await updateAdminFood(food.id, input);
-        setMessage("Saved");
+        onMessage(successMessage);
         router.refresh();
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Food item update failed");
-      }
-    });
-  }
-
-  function toggleAvailability() {
-    setMessage("");
-
-    startTransition(async () => {
-      try {
-        await updateAdminFood(food.id, { isAvailable: !food.isAvailable });
-        setMessage(food.isAvailable ? "Hidden from menu" : "Back on menu");
-        router.refresh();
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Availability update failed");
-      }
-    });
-  }
-
-  function toggleFeatured() {
-    setMessage("");
-
-    startTransition(async () => {
-      try {
-        await updateAdminFood(food.id, { isFeatured: !food.isFeatured });
-        setMessage(food.isFeatured ? "Removed from featured" : "Marked featured");
-        router.refresh();
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Featured update failed");
-      }
-    });
-  }
-
-  function deactivateFood() {
-    setMessage("");
-
-    startTransition(async () => {
-      try {
-        await deactivateAdminFood(food.id);
-        setMessage("Marked unavailable");
-        router.refresh();
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : "Food item deactivation failed");
+        onMessage(error instanceof Error ? error.message : "Food item update failed");
       }
     });
   }
 
   return (
-    <form onSubmit={updateFood} className="grid gap-4 p-5">
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
-          <p className="text-xl font-black">{food.name}</p>
-          <p className="mt-1 text-sm font-semibold text-stone-500">
-            /{food.slug} · {food.category.name} · Rs {food.finalPrice}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+    <article className="grid gap-4 rounded-lg border border-[#eee8df] bg-[#fbfaf7] p-3 sm:grid-cols-[88px_minmax(0,1fr)_auto] sm:items-center">
+      <div className="size-20 overflow-hidden rounded-lg bg-stone-100">
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt={food.name}
+            width={96}
+            height={96}
+            unoptimized
+            className="size-full object-cover"
+          />
+        ) : (
+          <div className="flex size-full items-center justify-center text-lg font-black text-stone-300">
+            {food.name.slice(0, 2)}
+          </div>
+        )}
+      </div>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="truncate text-lg font-black">{food.name}</p>
           <StatusPill active={food.isAvailable} activeLabel="Available" inactiveLabel="Hidden" />
           {food.isFeatured ? (
             <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-700">
@@ -185,49 +224,165 @@ function FoodRow({
             </span>
           ) : null}
         </div>
+        <p className="mt-1 text-sm font-semibold text-stone-500">
+          /{food.slug} · Rs {food.finalPrice} · {food.type === "NON_VEG" ? "Non-veg" : "Veg"}
+        </p>
+        <p className="mt-2 line-clamp-2 text-sm font-semibold leading-6 text-stone-600">
+          {food.description}
+        </p>
       </div>
-
-      <FoodFields categories={categories} food={food} />
-
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap gap-2 sm:justify-end">
         <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-md bg-stone-950 px-4 py-2 text-sm font-black text-white disabled:opacity-50"
+          type="button"
+          onClick={onEdit}
+          className="rounded-md bg-[#171512] px-4 py-2 text-sm font-black text-white"
         >
-          {isPending ? "Saving..." : "Save"}
+          View or edit
         </button>
         <button
           type="button"
-          onClick={toggleAvailability}
+          onClick={() =>
+            updateFlags(
+              { isAvailable: !food.isAvailable },
+              food.isAvailable ? "Item hidden from menu" : "Item is available",
+            )
+          }
           disabled={isPending}
-          className={`rounded-md px-4 py-2 text-sm font-black disabled:opacity-50 ${
-            food.isAvailable
-              ? "bg-red-50 text-red-700"
-              : "bg-green-50 text-green-700"
-          }`}
+          className="rounded-md border border-[#ddd4c8] bg-white px-4 py-2 text-sm font-black text-stone-700 disabled:opacity-50"
         >
-          {food.isAvailable ? "Hide from menu" : "Set available"}
+          {food.isAvailable ? "Hide" : "Show"}
         </button>
         <button
           type="button"
-          onClick={toggleFeatured}
+          onClick={() =>
+            updateFlags(
+              { isFeatured: !food.isFeatured },
+              food.isFeatured ? "Removed from featured" : "Marked featured",
+            )
+          }
           disabled={isPending}
-          className="rounded-md bg-orange-50 px-4 py-2 text-sm font-black text-orange-700 disabled:opacity-50"
+          className="rounded-md border border-orange-100 bg-orange-50 px-4 py-2 text-sm font-black text-orange-700 disabled:opacity-50"
         >
           {food.isFeatured ? "Unfeature" : "Feature"}
         </button>
-        <button
-          type="button"
-          onClick={deactivateFood}
-          disabled={isPending || !food.isAvailable}
-          className="rounded-md bg-stone-100 px-4 py-2 text-sm font-black text-stone-700 disabled:opacity-50"
-        >
-          Mark unavailable
-        </button>
-        {message ? <span className="text-xs font-black text-orange-700">{message}</span> : null}
       </div>
-    </form>
+    </article>
+  );
+}
+
+function FoodCreateModal({
+  categories,
+  onClose,
+  onMessage,
+}: {
+  categories: AdminCategory[];
+  onClose: () => void;
+  onMessage: (message: string) => void;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  function createFood(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const input = readFoodForm(new FormData(form));
+
+    startTransition(async () => {
+      try {
+        await createAdminFood(input);
+        form.reset();
+        onMessage("Food item created");
+        onClose();
+        router.refresh();
+      } catch (error) {
+        onMessage(error instanceof Error ? error.message : "Food item creation failed");
+      }
+    });
+  }
+
+  return (
+    <FoodModal title="Add menu item" onClose={onClose}>
+      <form onSubmit={createFood} className="space-y-4">
+        <FoodFields categories={categories} />
+        <ModalActions
+          isPending={isPending}
+          submitLabel={isPending ? "Saving..." : "Create item"}
+          onCancel={onClose}
+        />
+      </form>
+    </FoodModal>
+  );
+}
+
+function FoodEditModal({
+  food,
+  categories,
+  onClose,
+  onMessage,
+}: {
+  food: AdminFoodItem;
+  categories: AdminCategory[];
+  onClose: () => void;
+  onMessage: (message: string) => void;
+}) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [localMessage, setLocalMessage] = useState("");
+
+  function updateFood(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLocalMessage("");
+    const input = readFoodForm(new FormData(event.currentTarget));
+
+    startTransition(async () => {
+      try {
+        await updateAdminFood(food.id, input);
+        onMessage("Food item saved");
+        onClose();
+        router.refresh();
+      } catch (error) {
+        setLocalMessage(error instanceof Error ? error.message : "Food item update failed");
+      }
+    });
+  }
+
+  function deactivateFood() {
+    setLocalMessage("");
+
+    startTransition(async () => {
+      try {
+        await deactivateAdminFood(food.id);
+        onMessage("Food item marked unavailable");
+        onClose();
+        router.refresh();
+      } catch (error) {
+        setLocalMessage(error instanceof Error ? error.message : "Food item deactivation failed");
+      }
+    });
+  }
+
+  return (
+    <FoodModal title={food.name} onClose={onClose}>
+      <form onSubmit={updateFood} className="space-y-4">
+        <FoodFields categories={categories} food={food} />
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <button
+            type="button"
+            onClick={deactivateFood}
+            disabled={isPending || !food.isAvailable}
+            className="rounded-md bg-stone-100 px-4 py-3 text-sm font-black text-stone-700 disabled:opacity-50"
+          >
+            Mark unavailable
+          </button>
+          <ModalActions
+            isPending={isPending}
+            submitLabel={isPending ? "Saving..." : "Save item"}
+            onCancel={onClose}
+          />
+        </div>
+        {localMessage ? <p className="text-xs font-black text-orange-700">{localMessage}</p> : null}
+      </form>
+    </FoodModal>
   );
 }
 
@@ -278,24 +433,26 @@ function FoodFields({
           ))}
         </select>
       </label>
-      <label className="grid gap-1 text-sm font-black">
-        Name
-        <input
-          name="name"
-          required
-          defaultValue={food?.name}
-          className="rounded-md border border-stone-200 px-3 py-2 font-semibold outline-none focus:border-orange-600"
-        />
-      </label>
-      <label className="grid gap-1 text-sm font-black">
-        Slug
-        <input
-          name="slug"
-          defaultValue={food?.slug}
-          placeholder="Auto-generated if blank"
-          className="rounded-md border border-stone-200 px-3 py-2 font-semibold outline-none focus:border-orange-600"
-        />
-      </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-1 text-sm font-black">
+          Name
+          <input
+            name="name"
+            required
+            defaultValue={food?.name}
+            className="rounded-md border border-stone-200 px-3 py-2 font-semibold outline-none focus:border-orange-600"
+          />
+        </label>
+        <label className="grid gap-1 text-sm font-black">
+          Slug
+          <input
+            name="slug"
+            defaultValue={food?.slug}
+            placeholder="Auto-generated if blank"
+            className="rounded-md border border-stone-200 px-3 py-2 font-semibold outline-none focus:border-orange-600"
+          />
+        </label>
+      </div>
       <label className="grid gap-1 text-sm font-black">
         Description
         <textarea
@@ -349,9 +506,7 @@ function FoodFields({
             onChange={(event) => void uploadImage(event.target.files?.[0])}
             className="min-w-0 text-sm font-bold text-stone-600 file:mr-3 file:rounded-md file:border-0 file:bg-white file:px-3 file:py-2 file:text-sm file:font-black file:text-stone-900"
           />
-          <span className="text-xs font-bold text-stone-500">
-            JPG, PNG, or WebP up to 5MB
-          </span>
+          <span className="text-xs font-bold text-stone-500">JPG, PNG, or WebP up to 5MB</span>
         </div>
         {imageUrl ? (
           <div className="flex items-center gap-3">
@@ -401,24 +556,26 @@ function FoodFields({
           />
         </label>
       </div>
-      <label className="grid gap-1 text-sm font-black">
-        Ingredients
-        <input
-          name="ingredients"
-          defaultValue={food?.ingredients?.join(", ") ?? ""}
-          placeholder="Paneer, onion, sauce"
-          className="rounded-md border border-stone-200 px-3 py-2 font-semibold outline-none focus:border-orange-600"
-        />
-      </label>
-      <label className="grid gap-1 text-sm font-black">
-        Tags
-        <input
-          name="tags"
-          defaultValue={food?.tags?.join(", ") ?? ""}
-          placeholder="popular, spicy, quick-bite"
-          className="rounded-md border border-stone-200 px-3 py-2 font-semibold outline-none focus:border-orange-600"
-        />
-      </label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-1 text-sm font-black">
+          Ingredients
+          <input
+            name="ingredients"
+            defaultValue={food?.ingredients?.join(", ") ?? ""}
+            placeholder="Paneer, onion, sauce"
+            className="rounded-md border border-stone-200 px-3 py-2 font-semibold outline-none focus:border-orange-600"
+          />
+        </label>
+        <label className="grid gap-1 text-sm font-black">
+          Tags
+          <input
+            name="tags"
+            defaultValue={food?.tags?.join(", ") ?? ""}
+            placeholder="popular, spicy, quick-bite"
+            className="rounded-md border border-stone-200 px-3 py-2 font-semibold outline-none focus:border-orange-600"
+          />
+        </label>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="flex items-center gap-2 rounded-md border border-stone-200 px-3 py-2 text-sm font-black">
           <input
@@ -443,6 +600,68 @@ function FoodFields({
   );
 }
 
+function FoodModal({
+  title,
+  children,
+  onClose,
+}: {
+  title: string;
+  children: ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-end bg-black/35 p-0 sm:place-items-center sm:p-4">
+      <section className="max-h-[92vh] w-full overflow-y-auto rounded-t-lg bg-white p-5 shadow-2xl sm:max-w-3xl sm:rounded-lg">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-600">
+              Menu item
+            </p>
+            <h3 className="mt-1 text-2xl font-black">{title}</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md bg-stone-100 px-3 py-2 text-sm font-black text-stone-700"
+          >
+            Close
+          </button>
+        </div>
+        {children}
+      </section>
+    </div>
+  );
+}
+
+function ModalActions({
+  isPending,
+  submitLabel,
+  onCancel,
+}: {
+  isPending: boolean;
+  submitLabel: string;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="rounded-md border border-stone-200 bg-white px-4 py-3 text-sm font-black text-stone-700"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        disabled={isPending}
+        className="rounded-md bg-[#171512] px-5 py-3 text-sm font-black text-white disabled:opacity-50"
+      >
+        {submitLabel}
+      </button>
+    </div>
+  );
+}
+
 function StatusPill({
   active,
   activeLabel,
@@ -454,7 +673,7 @@ function StatusPill({
 }) {
   return (
     <span
-      className={`rounded-full px-3 py-1 text-xs font-black ${
+      className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${
         active ? "bg-green-50 text-green-700" : "bg-stone-100 text-stone-500"
       }`}
     >

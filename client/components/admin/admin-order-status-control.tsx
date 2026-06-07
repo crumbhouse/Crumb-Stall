@@ -67,11 +67,11 @@ export function AdminOrderStatusControl({
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
       <select
         value={status}
         onChange={(event) => setStatus(event.target.value)}
-        className="rounded-md border border-stone-200 px-3 py-2 text-sm font-black outline-none focus:border-orange-600"
+        className="min-w-0 rounded-md border border-stone-200 bg-white px-3 py-2 text-sm font-black outline-none focus:border-orange-600"
       >
         {statusOptions.map((option) => (
           <option key={option} value={option}>
@@ -83,11 +83,13 @@ export function AdminOrderStatusControl({
         type="button"
         onClick={updateStatus}
         disabled={isPending || status === currentStatus}
-        className="rounded-md bg-stone-950 px-4 py-2 text-sm font-black text-white disabled:opacity-50"
+        className="rounded-md bg-[#171512] px-4 py-2 text-sm font-black text-white disabled:opacity-50"
       >
         {isPending ? "Saving..." : "Update"}
       </button>
-      {message ? <span className="text-xs font-black text-orange-700">{message}</span> : null}
+      {message ? (
+        <span className="text-xs font-black text-orange-700 sm:col-span-2">{message}</span>
+      ) : null}
     </div>
   );
 }

@@ -23,7 +23,7 @@ export default async function AdminCustomersPage() {
         </div>
         <Link
           href="/admin/orders"
-          className="w-fit rounded-md bg-stone-950 px-4 py-3 text-sm font-black text-white"
+          className="w-fit rounded-md bg-[#171512] px-4 py-3 text-sm font-black text-white"
         >
           View orders
         </Link>
@@ -62,7 +62,7 @@ export default async function AdminCustomersPage() {
         />
       </div>
 
-      <section className="mt-6 overflow-hidden rounded-lg bg-white shadow-sm">
+      <section className="mt-6 overflow-hidden rounded-lg border border-[#e5ddd2] bg-white shadow-sm">
         <div className="border-b border-stone-100 p-5">
           <p className="text-sm font-black uppercase tracking-[0.16em] text-orange-600">
             Top customers
@@ -85,9 +85,9 @@ function MetricCard({
   helper?: string;
 }) {
   return (
-    <article className="rounded-lg bg-white p-5 shadow-sm">
-      <p className="text-sm font-bold text-stone-500">{label}</p>
-      <p className="mt-2 text-3xl font-black">{value}</p>
+    <article className="rounded-lg border border-[#e5ddd2] bg-white p-5 shadow-sm">
+      <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-400">{label}</p>
+      <p className="mt-3 text-3xl font-black">{value}</p>
       {helper ? <p className="mt-1 text-xs font-black text-orange-700">{helper}</p> : null}
     </article>
   );
@@ -106,20 +106,27 @@ function CustomerTable({ customers }: { customers: Customer[] }) {
   }
 
   return (
-    <div className="divide-y divide-stone-100">
+    <div className="divide-y divide-[#eee8df]">
       {customers.map((customer) => (
         <div
           key={customer.userId}
-          className="grid gap-4 p-5 xl:grid-cols-[minmax(0,1fr)_120px_130px_150px_160px] xl:items-center"
+          className="grid gap-4 p-5 xl:grid-cols-[minmax(0,1fr)_120px_130px_160px_170px] xl:items-center"
         >
           <div className="min-w-0">
-            <p className="font-black">{customer.name ?? "Customer"}</p>
-            <p className="mt-1 truncate text-sm font-semibold text-stone-500">{customer.email}</p>
+            <div className="flex items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#171512] text-sm font-black text-white">
+                {(customer.name ?? customer.email).slice(0, 2).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-black">{customer.name ?? "Customer"}</p>
+                <p className="mt-1 truncate text-sm font-semibold text-stone-500">{customer.email}</p>
+              </div>
+            </div>
           </div>
-          <Stat label="Orders" value={formatNumber(customer.orderCount)} />
-          <Stat label="Items" value={formatNumber(customer.itemCount)} />
-          <Stat label="Total spend" value={formatCurrency(customer.totalSpend)} />
-          <div>
+          <Stat label="Orders" value={formatNumber(customer.orderCount)} tone="soft" />
+          <Stat label="Items" value={formatNumber(customer.itemCount)} tone="soft" />
+          <Stat label="Total spend" value={formatCurrency(customer.totalSpend)} tone="dark" />
+          <div className="rounded-lg bg-[#fbfaf7] p-3">
             <p className="text-xs font-black uppercase tracking-[0.12em] text-stone-400">
               Last order
             </p>
@@ -134,10 +141,20 @@ function CustomerTable({ customers }: { customers: Customer[] }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, tone = "plain" }: { label: string; value: string; tone?: "plain" | "soft" | "dark" }) {
   return (
-    <div>
-      <p className="text-xs font-black uppercase tracking-[0.12em] text-stone-400">{label}</p>
+    <div
+      className={`rounded-lg p-3 ${
+        tone === "dark" ? "bg-[#171512] text-white" : tone === "soft" ? "bg-[#fbfaf7]" : ""
+      }`}
+    >
+      <p
+        className={`text-xs font-black uppercase tracking-[0.12em] ${
+          tone === "dark" ? "text-white/50" : "text-stone-400"
+        }`}
+      >
+        {label}
+      </p>
       <p className="mt-1 text-sm font-black">{value}</p>
     </div>
   );

@@ -46,7 +46,7 @@ export default async function AdminDashboardPage() {
         </div>
         <Link
           href="/admin/analytics"
-          className="w-fit rounded-md bg-stone-950 px-4 py-3 text-sm font-black text-white"
+          className="w-fit rounded-md bg-[#171512] px-4 py-3 text-sm font-black text-white"
         >
           View analytics
         </Link>
@@ -61,15 +61,17 @@ export default async function AdminDashboardPage() {
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => (
-          <article key={stat.label} className="rounded-lg bg-white p-5 shadow-sm">
-            <p className="text-sm font-bold text-stone-500">{stat.label}</p>
-            <p className="mt-2 text-3xl font-black">{stat.value}</p>
+          <article key={stat.label} className="rounded-lg border border-[#e5ddd2] bg-white p-5 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-400">
+              {stat.label}
+            </p>
+            <p className="mt-3 text-3xl font-black">{stat.value}</p>
           </article>
         ))}
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="rounded-lg bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-[#e5ddd2] bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-black">Revenue trend</h2>
@@ -82,7 +84,7 @@ export default async function AdminDashboardPage() {
           <RevenueBars data={trendData} />
         </section>
 
-        <section className="rounded-lg bg-white p-5 shadow-sm">
+        <section className="rounded-lg border border-[#e5ddd2] bg-white p-5 shadow-sm">
           <h2 className="text-xl font-black">Best sellers</h2>
           <p className="mt-1 text-sm font-semibold text-stone-500">Last 30 days</p>
           <div className="mt-5 space-y-3">
@@ -90,7 +92,7 @@ export default async function AdminDashboardPage() {
               <EmptyState text="No paid food sales yet." />
             ) : (
               topFoodData.map((item) => (
-                <div key={item.foodItemId} className="rounded-lg bg-stone-50 p-4">
+                <div key={item.foodItemId} className="rounded-lg bg-[#fbfaf7] p-4">
                   <div className="flex justify-between gap-3">
                     <p className="font-black">{item.name}</p>
                     <p className="shrink-0 text-sm font-black text-orange-700">
@@ -107,7 +109,7 @@ export default async function AdminDashboardPage() {
         </section>
       </div>
 
-      <section className="mt-6 rounded-lg bg-white p-5 shadow-sm">
+      <section className="mt-6 rounded-lg border border-[#e5ddd2] bg-white p-5 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-black">Live queue</h2>
@@ -163,7 +165,7 @@ function QueueList({ orders }: { orders: LiveQueueOrder[] }) {
       {orders.map((order) => (
         <div
           key={order.id}
-          className="grid gap-3 rounded-lg bg-stone-50 p-4 md:grid-cols-[1fr_140px_120px] md:items-center"
+          className="grid gap-3 rounded-lg bg-[#fbfaf7] p-4 md:grid-cols-[1fr_140px_120px] md:items-center"
         >
           <div>
             <Link href={`/orders/${order.orderNumber}`} className="font-black">

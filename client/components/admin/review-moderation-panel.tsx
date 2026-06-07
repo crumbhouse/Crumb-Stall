@@ -17,8 +17,8 @@ export function ReviewModerationPanel({ reviews }: { reviews: AdminReview[] }) {
         <MetricCard label="Total reviews" value={reviews.length} />
       </section>
 
-      <section className="overflow-hidden rounded-lg bg-white shadow-sm">
-        <div className="border-b border-stone-100 p-5">
+      <section className="overflow-hidden rounded-lg border border-[#e5ddd2] bg-white shadow-sm">
+        <div className="border-b border-[#eee8df] p-5">
           <p className="text-sm font-black uppercase tracking-[0.16em] text-orange-600">
             Moderation queue
           </p>
@@ -32,7 +32,7 @@ export function ReviewModerationPanel({ reviews }: { reviews: AdminReview[] }) {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-stone-100">
+          <div className="divide-y divide-[#eee8df]">
             {reviews.map((review) => (
               <ReviewRow key={review.id} review={review} />
             ))}
@@ -45,7 +45,7 @@ export function ReviewModerationPanel({ reviews }: { reviews: AdminReview[] }) {
 
 function MetricCard({ label, value }: { label: string; value: number }) {
   return (
-    <article className="rounded-lg bg-white p-5 shadow-sm">
+    <article className="rounded-lg border border-[#e5ddd2] bg-white p-5 shadow-sm">
       <p className="text-sm font-black uppercase tracking-[0.14em] text-stone-500">{label}</p>
       <p className="mt-2 text-3xl font-black">{value}</p>
     </article>
@@ -72,7 +72,7 @@ function ReviewRow({ review }: { review: AdminReview }) {
   }
 
   return (
-    <article className="grid gap-4 p-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-start">
+    <article className="grid gap-4 p-5 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-md bg-[#fff8db] px-2 py-1 text-xs font-black text-[#8a5a00]">
@@ -90,12 +90,19 @@ function ReviewRow({ review }: { review: AdminReview }) {
           <span className="text-xs font-bold text-stone-500">{formatDate(review.createdAt)}</span>
         </div>
 
-        <p className="mt-3 text-lg font-black">{review.foodItem.name}</p>
-        <p className="mt-1 text-sm font-semibold text-stone-500">
-          {review.user.name} · {review.user.email}
-        </p>
+        <div className="mt-3 flex items-start gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#171512] text-sm font-black text-white">
+            {review.user.name.slice(0, 2).toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <p className="text-lg font-black">{review.foodItem.name}</p>
+            <p className="mt-1 truncate text-sm font-semibold text-stone-500">
+              {review.user.name} · {review.user.email}
+            </p>
+          </div>
+        </div>
         {review.comment ? (
-          <p className="mt-3 rounded-lg bg-stone-50 p-4 text-sm font-semibold leading-6 text-stone-700">
+          <p className="mt-3 rounded-lg bg-[#fbfaf7] p-4 text-sm font-semibold leading-6 text-stone-700">
             {review.comment}
           </p>
         ) : (
@@ -103,7 +110,11 @@ function ReviewRow({ review }: { review: AdminReview }) {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-2 lg:justify-end">
+      <div className="rounded-lg border border-[#eee8df] bg-[#fbfaf7] p-3">
+        <p className="mb-3 text-xs font-black uppercase tracking-[0.12em] text-stone-400">
+          Moderation
+        </p>
+        <div className="flex flex-wrap gap-2 lg:justify-end">
         <Link
           href={`/food/${review.foodItem.slug}`}
           className="rounded-md border border-stone-200 bg-white px-4 py-2 text-sm font-black text-stone-700"
@@ -120,9 +131,10 @@ function ReviewRow({ review }: { review: AdminReview }) {
         >
           {isPending ? "Saving..." : review.isHidden ? "Restore" : "Hide"}
         </button>
-        {message ? (
-          <p className="basis-full text-xs font-black text-orange-700 lg:text-right">{message}</p>
-        ) : null}
+          {message ? (
+            <p className="basis-full text-xs font-black text-orange-700 lg:text-right">{message}</p>
+          ) : null}
+        </div>
       </div>
     </article>
   );
