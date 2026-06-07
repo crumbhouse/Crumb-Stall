@@ -168,7 +168,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
             </div>
 
             <div className="mt-5 max-w-3xl">
-              <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
                 Crumb Stall menu
               </p>
               <h1 className="mt-2 text-4xl font-black tracking-tight text-[#171717] sm:text-5xl">
@@ -193,7 +193,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
                 id="menu-search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="min-w-0 flex-1 bg-transparent px-3 py-3 text-base font-semibold text-[#171717] outline-none placeholder:text-[#8b8b8b]"
+                className="min-w-0 flex-1 bg-transparent px-3 py-3 text-base font-semibold text-[#171717] outline-none placeholder:text-[#666666]"
                 placeholder="Search burger, momos, coffee..."
               />
               {query ? (
@@ -224,8 +224,8 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
                     onClick={() => setActiveFilter(filter.id)}
                     className={`shrink-0 rounded-full border px-4 py-2 text-sm font-black shadow-sm transition ${
                       isActive
-                        ? "border-[#e23744] bg-[#e23744] text-white"
-                        : "border-[#e8e8e3] bg-white text-[#4b4b4b] hover:border-[#e23744] hover:text-[#e23744]"
+                        ? "border-[#d21f32] bg-[#d21f32] text-white"
+                        : "border-[#e8e8e3] bg-white text-[#4b4b4b] hover:border-[#d21f32] hover:text-[#d21f32]"
                     }`}
                   >
                     {filter.label}
@@ -277,7 +277,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
         <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
                 Categories
               </p>
               <h2 className="mt-1 text-2xl font-black">Order by craving</h2>
@@ -299,8 +299,8 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
               onClick={() => setActiveCategory("all")}
               className={`h-full rounded-lg border p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${
                 activeCategory === "all"
-                  ? "border-[#e23744] bg-[#fff0f2]"
-                  : "border-[#e8e8e3] bg-white hover:border-[#e23744]"
+                  ? "border-[#d21f32] bg-[#fff0f2]"
+                  : "border-[#e8e8e3] bg-white hover:border-[#d21f32]"
               }`}
             >
               <div className="flex items-center justify-between gap-3">
@@ -324,8 +324,8 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
                   onClick={() => setActiveCategory(category.slug)}
                   className={`h-full rounded-lg border p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${
                     isActive
-                      ? "border-[#e23744] bg-[#fff0f2]"
-                      : "border-[#e8e8e3] bg-white hover:border-[#e23744]"
+                      ? "border-[#d21f32] bg-[#fff0f2]"
+                      : "border-[#e8e8e3] bg-white hover:border-[#d21f32]"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -348,14 +348,14 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
         <section className="mx-auto max-w-7xl px-4 pb-2 sm:px-6 lg:px-8">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
                 {recommendationsPersonalized ? "Recommended for you" : "Popular picks"}
               </p>
               <h2 className="mt-1 text-2xl font-black">
                 {recommendationsPersonalized ? "Based on your recent orders" : "Popular right now"}
               </h2>
             </div>
-            <a href="#all-items" className="hidden text-sm font-black text-[#e23744] sm:block">
+            <a href="#all-items" className="hidden text-sm font-black text-[#d21f32] sm:block">
               See full menu
             </a>
           </div>
@@ -385,7 +385,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
       <section id="all-items" className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
         <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
               Menu results
             </p>
             <h2 className="mt-1 text-2xl font-black">{activeCategoryName}</h2>
@@ -398,7 +398,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
             <button
               type="button"
               onClick={clearFilters}
-              className="w-fit rounded-full border border-[#e8e8e3] bg-white px-4 py-2 text-sm font-black text-[#555] shadow-sm transition hover:border-[#e23744] hover:text-[#e23744]"
+              className="w-fit rounded-full border border-[#e8e8e3] bg-white px-4 py-2 text-sm font-black text-[#555] shadow-sm transition hover:border-[#d21f32] hover:text-[#d21f32]"
             >
               Reset filters
             </button>
@@ -412,8 +412,8 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
               onClick={() => setActiveCategory("all")}
               className={`shrink-0 rounded-full border px-4 py-2 text-sm font-black shadow-sm transition ${
                 activeCategory === "all"
-                  ? "border-[#e23744] bg-[#e23744] text-white"
-                  : "border-[#e8e8e3] bg-white text-[#4b4b4b] hover:border-[#e23744] hover:text-[#e23744]"
+                  ? "border-[#d21f32] bg-[#d21f32] text-white"
+                  : "border-[#e8e8e3] bg-white text-[#4b4b4b] hover:border-[#d21f32] hover:text-[#d21f32]"
               }`}
             >
               All items
@@ -428,8 +428,8 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
                   onClick={() => setActiveCategory(category.slug)}
                   className={`shrink-0 rounded-full border px-4 py-2 text-sm font-black shadow-sm transition ${
                     isActive
-                      ? "border-[#e23744] bg-[#e23744] text-white"
-                      : "border-[#e8e8e3] bg-white text-[#4b4b4b] hover:border-[#e23744] hover:text-[#e23744]"
+                      ? "border-[#d21f32] bg-[#d21f32] text-white"
+                      : "border-[#e8e8e3] bg-white text-[#4b4b4b] hover:border-[#d21f32] hover:text-[#d21f32]"
                   }`}
                 >
                   {category.name}
@@ -448,7 +448,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
             <button
               type="button"
               onClick={clearFilters}
-              className="mt-6 rounded-md bg-[#e23744] px-5 py-3 font-black text-white"
+              className="mt-6 rounded-md bg-[#d21f32] px-5 py-3 font-black text-white"
             >
               Clear filters
             </button>

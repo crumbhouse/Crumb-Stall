@@ -21,7 +21,7 @@ export function CartSummaryBar() {
         </span>
         <span className="text-xs font-semibold text-white/65">Review before checkout</span>
       </span>
-      <span className="rounded-md bg-[#e23744] px-3 py-2 text-sm font-black">Rs {total}</span>
+      <span className="rounded-md bg-[#d21f32] px-3 py-2 text-sm font-black">Rs {total}</span>
     </Link>
   );
 }

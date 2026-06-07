@@ -14,6 +14,7 @@ import { AuthenticatedUserGuard } from '../../common/auth/authenticated-user.gua
 import type { AuthenticatedRequest } from '../../common/auth/authenticated-user.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
+import { AuditService } from '../../infrastructure/audit/audit.service';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { AdminRegisterDto } from './dto/admin-register.dto';
 import { AuthService } from './auth.service';
@@ -21,7 +22,10 @@ import { SyncGoogleUserDto } from './dto/sync-google-user.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Post('google/sync')
   syncGoogleUser(
@@ -55,7 +59,18 @@ export class AuthController {
     @Param('userId') userId: string,
     @Req() request: AuthenticatedRequest,
   ) {
-    return this.authService.approveAdminRequest(userId, request.user!.email);
+    return this.authService
+      .approveAdminRequest(userId, request.user!.email)
+      .then(async (result) => {
+        await this.auditService.record({
+          actor: request.user,
+          action: 'admin.approve',
+          entityType: 'User',
+          entityId: result.user.id,
+          metadata: { email: result.user.email },
+        });
+        return result;
+      });
   }
 
   @Get('session')

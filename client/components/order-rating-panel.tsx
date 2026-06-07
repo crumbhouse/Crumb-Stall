@@ -43,7 +43,7 @@ export function OrderRatingPanel({
 
   return (
     <section className="mt-6 rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
-      <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+      <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
         Rate this order
       </p>
       <h2 className="mt-2 text-2xl font-black">How was your food?</h2>
@@ -59,14 +59,14 @@ export function OrderRatingPanel({
             disabled={isPending}
             aria-label={`Rate ${value} star${value === 1 ? "" : "s"}`}
             className={`size-11 rounded-md text-xl font-black transition disabled:opacity-60 ${
-              rating >= value ? "bg-[#e23744] text-white" : "bg-[#f1f1ee] text-[#8b8b8b]"
+              rating >= value ? "bg-[#d21f32] text-white" : "bg-[#f1f1ee] text-[#666666]"
             }`}
           >
             ★
           </button>
         ))}
       </div>
-      {message ? <p className="mt-3 text-sm font-black text-[#e23744]">{message}</p> : null}
+      {message ? <p className="mt-3 text-sm font-black text-[#d21f32]">{message}</p> : null}
     </section>
   );
 }

@@ -120,10 +120,22 @@ Last updated: 2026-06-07
 - Added `docs/STORAGE.md` with R2 bucket, credentials, private object proxy, and deployment environment setup notes.
 - Added backend structured logging with request IDs, request timing logs, centralized exception logging, JSON/pretty output modes, and `docs/LOGGING.md` tracing guidance.
 - Fixed admin food image upload flow: uploading an image now only uploads to R2 and fills the form field; the food item is updated only when the admin saves the menu item. R2 object display routes now handle nested `scope/YYYY/MM/file` paths correctly.
+- Added `docs/ENVIRONMENT.md` with production frontend/backend environment variables, Google OAuth redirect setup, Razorpay webhook setup, private R2 setup, and secret exposure rules.
+- Added `docs/DEPLOYMENT.md` with Vercel frontend deployment, long-running Node backend deployment, Supabase Postgres migration, Redis, R2, Google OAuth, Razorpay webhook, smoke test, and rollback guidance.
+- Added environment-aware CORS setup. Production requires explicit `CLIENT_ORIGIN`, while localhost auto-allow is limited to non-production.
+- Added Razorpay webhook processing tests for captured payments, failed payments, and duplicate webhook event IDs.
+- Added OTP hashing tests for HMAC-shaped storage, order-specific hashes, non-plaintext storage, and secret rotation rejection.
+- Added durable audit logs for admin actions across menu, category, coupon, order status, OTP handover, review moderation, and admin approval flows. Audit writes are non-blocking, so an audit persistence failure is logged without breaking the user-facing admin action.
+- Added API integration tests for the public category and food endpoints, including filter parsing, pagination, serialized pricing, detail lookup, missing-item 404 behavior, and protected admin route rejection. This also fixed food query DTO compatibility with the global validation whitelist.
+- Added a Playwright customer checkout E2E smoke test. It covers a signed-in customer adding a menu item, choosing a pickup slot, starting a mock Razorpay checkout, confirming payment, and navigating to the created order. The test stubs session/cart/payment network calls for deterministic runs and includes a dev-only protected-route bypass cookie that is disabled in production.
+- Added a Playwright admin menu management E2E smoke test for the protected `/admin/menu` page. It uses the same dev-only bypass cookie, verifies the management page loads, submits the Add category modal, checks the category create payload, and confirms the success state.
+- Added automated Axe accessibility coverage for customer `/menu`, `/cart`, and `/checkout` pages. The pass fixed customer UI contrast by darkening the brand action red and muted strike-through text so WCAG A/AA checks pass.
+- Added mobile customer visual QA coverage for the menu, cart, and checkout pages. The checks use a phone viewport, verify primary mobile controls are visible, and fail on horizontal overflow. The pass fixed a checkout mobile width overflow by constraining the checkout section/grid and preventing root horizontal page scroll.
+- Completed the current Security And Quality checklist pass. Final verification passed for client Playwright E2E, client lint/build, server unit tests/build, and server API e2e tests.
 
 ## Current Next Task
 
-- Add environment variable documentation for production.
+- Pick the next product or polish item after security and quality review.
 
 ## Local Setup Steps For You
 
@@ -157,7 +169,7 @@ Last updated: 2026-06-07
    npm run db:seed
    ```
 
-   The latest payment hardening migration adds checkout idempotency fields and the Razorpay webhook event ledger, so `npm run db:migrate` is required before testing real payments.
+   The latest migrations add checkout idempotency fields, the Razorpay webhook event ledger, and admin audit logs, so `npm run db:migrate` is required before testing real payments or admin auditing.
 
    The detailed database and migration workflow is documented in `docs/DATABASE.md`.
 
@@ -213,6 +225,19 @@ Last updated: 2026-06-07
    client/.env.local: NEXTAUTH_SECRET
    client/.env.local: GOOGLE_CLIENT_ID
    client/.env.local: GOOGLE_CLIENT_SECRET
+
+13. For browser E2E tests, install Playwright's Chromium browser once:
+
+   ```bash
+   cd client
+   npm run test:e2e:install
+   ```
+
+   Then run:
+
+   ```bash
+   npm run test:e2e
+   ```
    client/.env.local: AUTH_SYNC_SECRET
    server/.env: AUTH_SYNC_SECRET
    ```

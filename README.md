@@ -54,6 +54,10 @@ This milestone establishes:
 
    For backend request/error tracing, see `docs/LOGGING.md`.
 
+   For production environment variables, see `docs/ENVIRONMENT.md`.
+
+   For deployment steps, see `docs/DEPLOYMENT.md`.
+
 3. Start Redis if you want the optional local cache service:
 
    ```bash

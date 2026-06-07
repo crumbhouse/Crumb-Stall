@@ -15,7 +15,7 @@ export function ReviewSection({
       <div className="rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
               Reviews
             </p>
             <h2 className="mt-1 text-2xl font-black">

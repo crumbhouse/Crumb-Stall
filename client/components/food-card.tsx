@@ -51,7 +51,7 @@ export function FoodCard({
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#e23744]">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#d21f32]">
               {item.category.name}
             </p>
             <Link href={`/food/${item.slug}`} className="mt-1 line-clamp-2 block min-h-12 text-lg font-black leading-6 text-[#171717]">
@@ -76,7 +76,7 @@ export function FoodCard({
           <div>
             <p className="text-lg font-black text-[#171717]">Rs {item.finalPrice}</p>
             {item.discountPrice ? (
-              <p className="text-xs font-semibold text-[#8b8b8b] line-through">Rs {item.price}</p>
+              <p className="text-xs font-semibold text-[#666666] line-through">Rs {item.price}</p>
             ) : null}
           </div>
           <AddToCartButton item={item} />

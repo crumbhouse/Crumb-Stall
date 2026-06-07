@@ -6,12 +6,15 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { AuthenticatedUserGuard } from '../../common/auth/authenticated-user.guard';
+import type { AuthenticatedRequest } from '../../common/auth/authenticated-user.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
+import { AuditService } from '../../infrastructure/audit/audit.service';
 import { CategoriesService } from './categories.service';
 import {
   CreateCategoryDto,
@@ -20,7 +23,10 @@ import {
 
 @Controller('categories')
 export class CategoriesController {
-  constructor(private readonly categoriesService: CategoriesService) {}
+  constructor(
+    private readonly categoriesService: CategoriesService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Get()
   findAll() {
@@ -37,24 +43,52 @@ export class CategoriesController {
   @Post()
   @UseGuards(AuthenticatedUserGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  create(@Body() body: CreateCategoryDto) {
-    return this.categoriesService.create(body);
+  async create(@Body() body: CreateCategoryDto, @Req() request: AuthenticatedRequest) {
+    const category = await this.categoriesService.create(body);
+    await this.auditService.record({
+      actor: request.user,
+      action: 'category.create',
+      entityType: 'Category',
+      entityId: category.id,
+      metadata: { slug: category.slug, name: category.name },
+    });
+    return category;
   }
 
   @Patch(':categoryId')
   @UseGuards(AuthenticatedUserGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  update(
+  async update(
     @Param('categoryId') categoryId: string,
     @Body() body: UpdateCategoryDto,
+    @Req() request: AuthenticatedRequest,
   ) {
-    return this.categoriesService.update(categoryId, body);
+    const category = await this.categoriesService.update(categoryId, body);
+    await this.auditService.record({
+      actor: request.user,
+      action: 'category.update',
+      entityType: 'Category',
+      entityId: category.id,
+      metadata: { slug: category.slug, changedFields: Object.keys(body) },
+    });
+    return category;
   }
 
   @Delete(':categoryId')
   @UseGuards(AuthenticatedUserGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  deactivate(@Param('categoryId') categoryId: string) {
-    return this.categoriesService.deactivate(categoryId);
+  async deactivate(
+    @Param('categoryId') categoryId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    const category = await this.categoriesService.deactivate(categoryId);
+    await this.auditService.record({
+      actor: request.user,
+      action: 'category.deactivate',
+      entityType: 'Category',
+      entityId: category.id,
+      metadata: { slug: category.slug },
+    });
+    return category;
   }
 }

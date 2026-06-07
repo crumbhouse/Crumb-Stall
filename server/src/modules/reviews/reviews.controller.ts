@@ -14,13 +14,17 @@ import { AuthenticatedUserGuard } from '../../common/auth/authenticated-user.gua
 import type { AuthenticatedRequest } from '../../common/auth/authenticated-user.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
+import { AuditService } from '../../infrastructure/audit/audit.service';
 import { ModerateReviewDto } from './dto/moderate-review.dto';
 import { parseReviewInput } from './dto/review-input.dto';
 import { ReviewsService } from './reviews.service';
 
 @Controller('reviews')
 export class ReviewsController {
-  constructor(private readonly reviewsService: ReviewsService) {}
+  constructor(
+    private readonly reviewsService: ReviewsService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Get('admin')
   @UseGuards(AuthenticatedUserGuard, RolesGuard)
@@ -58,7 +62,19 @@ export class ReviewsController {
   moderateReview(
     @Param('reviewId') reviewId: string,
     @Body() body: ModerateReviewDto,
+    @Req() request: AuthenticatedRequest,
   ) {
-    return this.reviewsService.moderateReview(reviewId, body.isHidden);
+    return this.reviewsService
+      .moderateReview(reviewId, body.isHidden)
+      .then(async (review) => {
+        await this.auditService.record({
+          actor: request.user,
+          action: body.isHidden ? 'review.hide' : 'review.restore',
+          entityType: 'Review',
+          entityId: review.id,
+          metadata: { foodItemId: review.foodItem.id },
+        });
+        return review;
+      });
   }
 }

@@ -128,7 +128,7 @@ export function NotificationPopover() {
           setOpen((current) => !current);
           void loadNotifications({ showLoading: true });
         }}
-        className="relative flex size-10 shrink-0 items-center justify-center rounded-full border border-[#e8e8e3] bg-white text-[#171717] transition hover:border-[#e23744] hover:text-[#e23744]"
+        className="relative flex size-10 shrink-0 items-center justify-center rounded-full border border-[#e8e8e3] bg-white text-[#171717] transition hover:border-[#d21f32] hover:text-[#d21f32]"
         aria-expanded={open}
         aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "Notifications"}
       >
@@ -146,7 +146,7 @@ export function NotificationPopover() {
           <path d="M13.7 21a2 2 0 0 1-3.4 0" />
         </svg>
         {unreadCount > 0 ? (
-          <span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full bg-[#e23744] px-1.5 py-0.5 text-[10px] font-black leading-none text-white">
+          <span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full bg-[#d21f32] px-1.5 py-0.5 text-[10px] font-black leading-none text-white">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         ) : null}
@@ -165,7 +165,7 @@ export function NotificationPopover() {
         <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-[#e8e8e3] bg-white p-4 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-black uppercase tracking-[0.14em] text-[#e23744]">
+              <p className="text-sm font-black uppercase tracking-[0.14em] text-[#d21f32]">
                 Notifications
               </p>
               <p className="mt-1 text-xs font-semibold text-[#646464]">
@@ -234,7 +234,7 @@ function NotificationItem({
     <>
       <span
         className={`mt-1 size-2 shrink-0 rounded-full ${
-          notification.readAt ? "bg-[#d7d7cf]" : "bg-[#e23744]"
+          notification.readAt ? "bg-[#d7d7cf]" : "bg-[#d21f32]"
         }`}
       />
       <span className="min-w-0">
@@ -242,7 +242,7 @@ function NotificationItem({
         <span className="mt-1 block text-sm font-semibold text-[#646464]">
           {notification.message}
         </span>
-        <span className="mt-2 block text-xs font-bold text-[#8b8b8b]">
+        <span className="mt-2 block text-xs font-bold text-[#666666]">
           {formatRelativeTime(notification.createdAt)}
         </span>
       </span>
@@ -259,7 +259,7 @@ function NotificationItem({
           }
           onClose();
         }}
-        className="flex gap-3 rounded-lg border border-[#eeeeea] p-3 transition hover:border-[#e23744] hover:bg-[#fff8f9]"
+        className="flex gap-3 rounded-lg border border-[#eeeeea] p-3 transition hover:border-[#d21f32] hover:bg-[#fff8f9]"
       >
         {content}
       </Link>
@@ -274,7 +274,7 @@ function NotificationItem({
           void onMarkRead(notification.id);
         }
       }}
-      className="flex w-full gap-3 rounded-lg border border-[#eeeeea] p-3 text-left transition hover:border-[#e23744] hover:bg-[#fff8f9]"
+      className="flex w-full gap-3 rounded-lg border border-[#eeeeea] p-3 text-left transition hover:border-[#d21f32] hover:bg-[#fff8f9]"
     >
       {content}
     </button>

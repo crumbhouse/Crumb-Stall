@@ -11,10 +11,20 @@ const liveEvents = {
 };
 
 describe('OtpService', () => {
+  const previousOtpSecret = process.env.OTP_SECRET;
+  const previousJwtSecret = process.env.JWT_SECRET;
+
   beforeEach(() => {
     notifications.create.mockClear();
     liveEvents.emitAdminOrderUpdated.mockClear();
     liveEvents.emitCustomerOrderStatus.mockClear();
+    process.env.OTP_SECRET = 'test-otp-secret';
+    process.env.JWT_SECRET = 'test-jwt-secret';
+  });
+
+  afterEach(() => {
+    process.env.OTP_SECRET = previousOtpSecret;
+    process.env.JWT_SECRET = previousJwtSecret;
   });
 
   it('does not expose an OTP before an order is ready', async () => {
@@ -68,6 +78,41 @@ describe('OtpService', () => {
         }),
       }),
     );
+  });
+
+  it('stores OTP hashes as deterministic HMAC digests, not raw OTPs', async () => {
+    const storedHashes: string[] = [];
+    const prisma = {
+      orderOtp: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        upsert: jest.fn().mockImplementation(({ create }) => {
+          storedHashes.push(create.otpHash);
+          return Promise.resolve({
+            ...create,
+            attemptCount: 0,
+          });
+        }),
+      },
+    };
+    const service = new OtpService(
+      prisma as never,
+      liveEvents as never,
+      notifications as never,
+    );
+    const firstOtp = await service.getDisplayOtpForOrder({
+      id: 'order-1',
+      status: OrderStatus.READY_FOR_PICKUP,
+    });
+    const secondOtp = await service.getDisplayOtpForOrder({
+      id: 'order-2',
+      status: OrderStatus.READY_FOR_PICKUP,
+    });
+
+    expect(storedHashes).toHaveLength(2);
+    expect(storedHashes[0]).toMatch(/^[a-f0-9]{64}$/);
+    expect(storedHashes[0]).not.toBe(firstOtp?.code);
+    expect(storedHashes[1]).not.toBe(secondOtp?.code);
+    expect(storedHashes[0]).not.toBe(storedHashes[1]);
   });
 
   it('force refreshes an active OTP even when it has not expired', async () => {
@@ -184,6 +229,52 @@ describe('OtpService', () => {
       expect.objectContaining({
         orderNumber: 'CS-1',
         status: OrderStatus.COMPLETED,
+      }),
+    );
+  });
+
+  it('rejects an otherwise valid OTP when the OTP secret changes', async () => {
+    let storedOtp: Record<string, unknown> | null = null;
+    const prisma = {
+      order: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'order-1',
+          userId: 'user-1',
+          status: OrderStatus.READY_FOR_PICKUP,
+        }),
+      },
+      orderOtp: {
+        findUnique: jest
+          .fn()
+          .mockImplementation(() => Promise.resolve(storedOtp)),
+        upsert: jest.fn().mockImplementation(({ create }) => {
+          storedOtp = {
+            id: 'otp-1',
+            ...create,
+            attemptCount: 0,
+            verifiedAt: null,
+          };
+
+          return Promise.resolve(storedOtp);
+        }),
+        update: jest.fn().mockResolvedValue({ attemptCount: 1 }),
+      },
+    };
+    const service = new OtpService(
+      prisma as never,
+      liveEvents as never,
+      notifications as never,
+    );
+    const otp = await service.generateForOrderNumber('CS-1');
+
+    process.env.OTP_SECRET = 'rotated-secret';
+
+    await expect(
+      service.verifyForOrderNumber('CS-1', otp?.code ?? ''),
+    ).rejects.toThrow('Invalid OTP');
+    expect(prisma.orderOtp.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { attemptCount: { increment: 1 } },
       }),
     );
   });

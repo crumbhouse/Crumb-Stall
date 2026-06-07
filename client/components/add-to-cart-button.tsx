@@ -26,7 +26,7 @@ export function AddToCartButton({
         <button
           type="button"
           onClick={() => decreaseItem(item.id)}
-          className="px-3 py-2 text-base font-black text-[#e23744]"
+          className="px-3 py-2 text-base font-black text-[#d21f32]"
           aria-label={`Decrease ${item.name}`}
         >
           -
@@ -37,7 +37,7 @@ export function AddToCartButton({
         <button
           type="button"
           onClick={() => increaseItem(item.id)}
-          className="px-3 py-2 text-base font-black text-[#e23744]"
+          className="px-3 py-2 text-base font-black text-[#d21f32]"
           aria-label={`Increase ${item.name}`}
         >
           +
@@ -53,7 +53,7 @@ export function AddToCartButton({
         onClick={() => savePendingCartItem(item)}
         className={
           className ??
-          "rounded-md bg-[#e23744] px-4 py-2 text-sm font-black text-white transition hover:bg-[#b91c2b]"
+          "rounded-md bg-[#d21f32] px-4 py-2 text-sm font-black text-white transition hover:bg-[#b91c2b]"
         }
       >
         {children}
@@ -67,7 +67,7 @@ export function AddToCartButton({
       onClick={() => addItem(item)}
       className={
         className ??
-        "rounded-md bg-[#e23744] px-4 py-2 text-sm font-black text-white transition hover:bg-[#b91c2b]"
+        "rounded-md bg-[#d21f32] px-4 py-2 text-sm font-black text-white transition hover:bg-[#b91c2b]"
       }
     >
       {children}

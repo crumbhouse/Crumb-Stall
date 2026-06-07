@@ -36,13 +36,13 @@ export function MobileBar() {
             href={item.href}
             className={`flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-center text-[11px] font-black transition ${
               isActive
-                ? "bg-[#fff0f2] text-[#e23744]"
-                : "text-[#555] hover:bg-[#fff0f2] hover:text-[#e23744]"
+                ? "bg-[#fff0f2] text-[#d21f32]"
+                : "text-[#555] hover:bg-[#fff0f2] hover:text-[#d21f32]"
             }`}
           >
             <span
               className={`flex size-6 items-center justify-center rounded-md text-[10px] ${
-                isActive ? "bg-[#e23744] text-white" : "bg-[#f2f2ee] text-[#777]"
+                isActive ? "bg-[#d21f32] text-white" : "bg-[#f2f2ee] text-[#777]"
               }`}
             >
               {item.icon}

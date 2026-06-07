@@ -53,7 +53,7 @@ export function OrdersFilterForm({
         value={search}
         onChange={(event) => setSearch(event.target.value)}
         placeholder="Search by order number or item"
-        className="min-w-0 rounded-md border border-[#e8e8e3] px-3 py-3 text-sm font-semibold outline-none focus:border-[#e23744]"
+        className="min-w-0 rounded-md border border-[#e8e8e3] px-3 py-3 text-sm font-semibold outline-none focus:border-[#d21f32]"
       />
       <label htmlFor="order-status" className="sr-only">
         Status
@@ -63,7 +63,7 @@ export function OrdersFilterForm({
         name="status"
         value={status}
         onChange={(event) => setStatus(event.target.value)}
-        className="min-w-0 rounded-md border border-[#e8e8e3] px-3 py-3 text-sm font-black outline-none focus:border-[#e23744]"
+        className="min-w-0 rounded-md border border-[#e8e8e3] px-3 py-3 text-sm font-black outline-none focus:border-[#d21f32]"
       >
         {statuses.map((option) => (
           <option key={option.label} value={option.value}>

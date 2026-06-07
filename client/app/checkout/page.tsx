@@ -216,7 +216,7 @@ export default function CheckoutPage() {
           ondismiss: () => setIsPaying(false),
         },
         theme: {
-          color: "#e23744",
+          color: "#d21f32",
         },
       });
 
@@ -230,14 +230,14 @@ export default function CheckoutPage() {
   return (
     <main className="min-h-screen bg-[#f6f6f4] text-[#171717]">
       <CustomerNav />
-      <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+      <section className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
+        <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
           Checkout
         </p>
         <h1 className="mt-2 text-3xl font-black">Pickup and payment</h1>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-4">
+        <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0 space-y-4">
             <div className="rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
               <p className="font-black">Pickup time</p>
               <p className="mt-1 text-sm font-semibold text-[#646464]">
@@ -257,8 +257,8 @@ export default function CheckoutPage() {
                       }}
                       className={`rounded-md border px-4 py-3 text-sm font-black ${
                         isSelected
-                          ? "border-[#e23744] bg-[#fff0f2] text-[#b91c2b]"
-                          : "border-[#e8e8e3] hover:border-[#e23744] hover:bg-[#fff0f2]"
+                          ? "border-[#d21f32] bg-[#fff0f2] text-[#b91c2b]"
+                          : "border-[#e8e8e3] hover:border-[#d21f32] hover:bg-[#fff0f2]"
                       }`}
                     >
                       <span className="block">{slot.label}</span>
@@ -284,7 +284,7 @@ export default function CheckoutPage() {
                 <input
                   value={couponCode}
                   onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
-                  className="min-w-0 flex-1 rounded-md border border-[#e8e8e3] px-4 py-3 font-semibold outline-none focus:border-[#e23744]"
+                  className="min-w-0 flex-1 rounded-md border border-[#e8e8e3] px-4 py-3 font-semibold outline-none focus:border-[#d21f32]"
                   placeholder="WELCOME10"
                 />
                 <button
@@ -320,7 +320,7 @@ export default function CheckoutPage() {
             </form>
           </div>
 
-          <aside className="h-fit rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
+          <aside className="min-w-0 h-fit rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm">
           <h2 className="text-xl font-black">Order summary</h2>
           {items.length === 0 ? (
             <p className="mt-4 text-sm font-semibold text-[#646464]">Your cart is empty.</p>
@@ -385,7 +385,7 @@ export default function CheckoutPage() {
           {!isLoggedIn ? (
             <div className="mt-4 rounded-md bg-[#fff8db] px-3 py-2 text-sm font-bold text-[#8a5a00]">
               Login is required before payment so your order is attached to your account.
-              <Link href="/login?callbackUrl=/checkout" className="ml-2 text-[#e23744]">
+              <Link href="/login?callbackUrl=/checkout" className="ml-2 text-[#d21f32]">
                 Login
               </Link>
             </div>
@@ -396,7 +396,7 @@ export default function CheckoutPage() {
             disabled={isPaying}
             aria-disabled={!canPay || isPaying}
             className={`mt-6 flex justify-center rounded-md px-5 py-4 font-black text-white transition ${
-              canPay && !isPaying ? "bg-[#e23744] hover:bg-[#b91c2b]" : "bg-[#9a9a92]"
+              canPay && !isPaying ? "bg-[#d21f32] hover:bg-[#b91c2b]" : "bg-[#9a9a92]"
             }`}
           >
             {isPaying ? "Starting payment..." : items.length > 0 ? "Pay with Razorpay" : "Back to menu"}

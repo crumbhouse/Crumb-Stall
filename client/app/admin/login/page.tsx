@@ -14,7 +14,7 @@ export default async function AdminLoginPage({
         <div className="flex flex-col justify-between bg-stone-950 p-6 text-white sm:p-8">
           <div>
             <div className="flex items-center gap-3">
-              <span className="flex size-11 items-center justify-center rounded-lg bg-[#e23744] text-sm font-black">
+              <span className="flex size-11 items-center justify-center rounded-lg bg-[#d21f32] text-sm font-black">
                 CS
               </span>
               <div>
@@ -54,7 +54,7 @@ export default async function AdminLoginPage({
 
         <div className="flex items-center p-5 sm:p-8 lg:p-12">
           <div className="w-full">
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
               Admin portal
             </p>
             <h2 className="mt-2 text-3xl font-black">Sign in or request access</h2>

@@ -5,6 +5,14 @@ const customerProtectedPrefixes = ["/checkout", "/favorites", "/invoices", "/ord
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const bypassAuthForE2E =
+    process.env.NODE_ENV !== "production" &&
+    request.cookies.get("crumbstall-e2e-auth-bypass")?.value === "true";
+
+  if (bypassAuthForE2E) {
+    return NextResponse.next();
+  }
+
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
   const role = typeof token?.role === "string" ? token.role : null;
 

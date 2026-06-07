@@ -49,7 +49,7 @@ export default async function FoodDetailPage({ params }: { params: Promise<{ slu
           ) : null}
         </div>
         <aside className="h-fit rounded-lg border border-[#e8e8e3] bg-white p-6 shadow-sm">
-          <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
             {item.category.name}
           </p>
           <h1 className="mt-3 text-4xl font-black leading-tight">{item.name}</h1>
@@ -67,7 +67,7 @@ export default async function FoodDetailPage({ params }: { params: Promise<{ slu
           <p className="mt-4 leading-7 text-[#646464]">{item.description}</p>
           <div className="mt-6 flex items-center gap-3">
             <p className="text-3xl font-black">Rs {item.finalPrice}</p>
-            {item.discountPrice ? <p className="font-bold text-[#8b8b8b] line-through">Rs {item.price}</p> : null}
+            {item.discountPrice ? <p className="font-bold text-[#666666] line-through">Rs {item.price}</p> : null}
           </div>
           <div className="mt-6 flex flex-wrap gap-2">
             {item.tags.map((tag) => (
@@ -78,7 +78,7 @@ export default async function FoodDetailPage({ params }: { params: Promise<{ slu
           </div>
           <AddToCartButton
             item={item}
-            className="mt-8 flex w-full justify-center rounded-md bg-[#e23744] px-5 py-4 text-base font-black text-white transition hover:bg-[#b91c2b]"
+            className="mt-8 flex w-full justify-center rounded-md bg-[#d21f32] px-5 py-4 text-base font-black text-white transition hover:bg-[#b91c2b]"
           >
             Add to cart
           </AddToCartButton>

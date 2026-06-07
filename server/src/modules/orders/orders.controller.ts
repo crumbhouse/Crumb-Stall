@@ -7,12 +7,15 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { AuthenticatedUserGuard } from '../../common/auth/authenticated-user.guard';
+import type { AuthenticatedRequest } from '../../common/auth/authenticated-user.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { RolesGuard } from '../../common/auth/roles.guard';
+import { AuditService } from '../../infrastructure/audit/audit.service';
 import {
   parseConfirmCheckoutPaymentDto,
   parseRecoverCheckoutOrderDto,
@@ -24,7 +27,10 @@ import { OrdersService } from './orders.service';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Get()
   findRecentOrders(
@@ -98,8 +104,18 @@ export class OrdersController {
   updateStatus(
     @Param('orderNumber') orderNumber: string,
     @Body() body: UpdateOrderStatusDto,
+    @Req() request: AuthenticatedRequest,
   ) {
-    return this.ordersService.updateStatus(orderNumber, body);
+    return this.ordersService.updateStatus(orderNumber, body).then(async (order) => {
+      await this.auditService.record({
+        actor: request.user,
+        action: 'order.status.update',
+        entityType: 'Order',
+        entityId: order.id,
+        metadata: { orderNumber, status: body.status },
+      });
+      return order;
+    });
   }
 
   @Get(':orderNumber')

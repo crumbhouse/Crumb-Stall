@@ -36,7 +36,7 @@ export default async function OrdersPage({
       <OrderLiveRefresh />
       <CustomerNav />
       <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+        <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
           Order history
         </p>
         <div className="mt-2 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -46,7 +46,7 @@ export default async function OrdersPage({
               {history.meta.total} orders found
             </p>
           </div>
-          <Link href="/menu" className="w-fit rounded-md bg-[#e23744] px-4 py-2 text-sm font-black text-white">
+          <Link href="/menu" className="w-fit rounded-md bg-[#d21f32] px-4 py-2 text-sm font-black text-white">
             New order
           </Link>
         </div>
@@ -61,7 +61,7 @@ export default async function OrdersPage({
             </p>
             <Link
               href="/orders"
-              className="mt-6 inline-flex rounded-md bg-[#e23744] px-5 py-3 font-black text-white"
+              className="mt-6 inline-flex rounded-md bg-[#d21f32] px-5 py-3 font-black text-white"
             >
               Clear filters
             </Link>
@@ -72,7 +72,7 @@ export default async function OrdersPage({
               <Link
                 key={order.id}
                 href={`/orders/${order.orderNumber}`}
-                className="block rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm transition hover:border-[#e23744]"
+                className="block rounded-lg border border-[#e8e8e3] bg-white p-5 shadow-sm transition hover:border-[#d21f32]"
               >
                 <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
                   <div>
@@ -153,7 +153,7 @@ function PaginationLink({
   }
 
   return (
-    <Link href={`/orders?${params.toString()}`} className="text-sm font-black text-[#e23744]">
+    <Link href={`/orders?${params.toString()}`} className="text-sm font-black text-[#d21f32]">
       {children}
     </Link>
   );

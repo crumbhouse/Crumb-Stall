@@ -16,7 +16,7 @@ export default async function InvoicePage({
         <CustomerNav />
         <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
           <div className="rounded-lg border border-dashed border-[#d7d7cf] bg-white p-8 text-center shadow-sm">
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
               Invoice
             </p>
             <h1 className="mt-2 text-3xl font-black">Invoice not found</h1>
@@ -25,7 +25,7 @@ export default async function InvoicePage({
             </p>
             <Link
               href="/orders"
-              className="mt-6 inline-flex rounded-md bg-[#e23744] px-5 py-3 font-black text-white"
+              className="mt-6 inline-flex rounded-md bg-[#d21f32] px-5 py-3 font-black text-white"
             >
               Back to orders
             </Link>
@@ -41,7 +41,7 @@ export default async function InvoicePage({
       <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
               Invoice
             </p>
             <h1 className="mt-2 text-3xl font-black">{invoice.invoiceNumber}</h1>
@@ -120,7 +120,7 @@ export default async function InvoicePage({
           </p>
           <a
             href={getInvoicePdfUrl(invoice.invoiceNumber)}
-            className="w-fit rounded-md bg-[#e23744] px-5 py-3 text-sm font-black text-white transition hover:bg-[#c82031]"
+            className="w-fit rounded-md bg-[#d21f32] px-5 py-3 text-sm font-black text-white transition hover:bg-[#c82031]"
           >
             Download PDF
           </a>
@@ -133,7 +133,7 @@ export default async function InvoicePage({
 function InvoiceMeta({ label, value, helper }: { label: string; value: string; helper: string }) {
   return (
     <div>
-      <p className="text-xs font-black uppercase tracking-[0.14em] text-[#e23744]">{label}</p>
+      <p className="text-xs font-black uppercase tracking-[0.14em] text-[#d21f32]">{label}</p>
       <p className="mt-2 font-black">{value}</p>
       <p className="mt-1 text-sm font-semibold text-[#646464]">{helper}</p>
     </div>

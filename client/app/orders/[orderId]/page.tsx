@@ -16,7 +16,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
         <CustomerNav />
         <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
           <div className="rounded-lg border border-dashed border-[#d7d7cf] bg-white p-8 text-center">
-            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+            <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
               Order tracking
             </p>
             <h1 className="mt-2 text-3xl font-black">Order not found</h1>
@@ -25,7 +25,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
             </p>
             <Link
               href="/menu"
-              className="mt-6 inline-flex rounded-md bg-[#e23744] px-5 py-3 font-black text-white"
+              className="mt-6 inline-flex rounded-md bg-[#d21f32] px-5 py-3 font-black text-white"
             >
               Back to menu
             </Link>
@@ -40,7 +40,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
       <OrderLiveRefresh active={!terminalStatuses.has(order.status)} />
       <CustomerNav />
       <section className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">
+        <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
           Order tracking
         </p>
         <div className="mt-2 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
@@ -63,7 +63,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
                   <span
                     className={`mt-1 size-4 shrink-0 rounded-full ${
                       step.state === "done" || step.state === "current"
-                        ? "bg-[#e23744]"
+                        ? "bg-[#d21f32]"
                         : "bg-[#d7d7cf]"
                     }`}
                   />
@@ -71,7 +71,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
                     <p className="font-black">{step.label}</p>
                     <p className="mt-1 text-sm font-semibold text-[#646464]">{step.description}</p>
                     {step.timestamp ? (
-                      <p className="mt-1 text-xs font-bold text-[#8b8b8b]">
+                      <p className="mt-1 text-xs font-bold text-[#666666]">
                         {formatDateTime(step.timestamp)}
                       </p>
                     ) : null}

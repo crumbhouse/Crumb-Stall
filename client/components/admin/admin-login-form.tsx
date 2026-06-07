@@ -107,7 +107,7 @@ export function AdminLoginForm({
               required
               minLength={2}
               placeholder="Your full name"
-              className="mt-2 w-full rounded-md border border-stone-200 bg-stone-50 px-4 py-3 font-semibold outline-none transition focus:border-[#e23744] focus:bg-white"
+              className="mt-2 w-full rounded-md border border-stone-200 bg-stone-50 px-4 py-3 font-semibold outline-none transition focus:border-[#d21f32] focus:bg-white"
             />
           </label>
         ) : null}
@@ -119,7 +119,7 @@ export function AdminLoginForm({
             onChange={(event) => setEmail(event.target.value)}
             required
             placeholder="staff@crumbstall.com"
-            className="mt-2 w-full rounded-md border border-stone-200 bg-stone-50 px-4 py-3 font-semibold outline-none transition focus:border-[#e23744] focus:bg-white"
+            className="mt-2 w-full rounded-md border border-stone-200 bg-stone-50 px-4 py-3 font-semibold outline-none transition focus:border-[#d21f32] focus:bg-white"
           />
         </label>
         <label className="block">
@@ -131,7 +131,7 @@ export function AdminLoginForm({
             required
             minLength={mode === "register" ? 10 : 8}
             placeholder={mode === "register" ? "Minimum 10 characters" : "Your password"}
-            className="mt-2 w-full rounded-md border border-stone-200 bg-stone-50 px-4 py-3 font-semibold outline-none transition focus:border-[#e23744] focus:bg-white"
+            className="mt-2 w-full rounded-md border border-stone-200 bg-stone-50 px-4 py-3 font-semibold outline-none transition focus:border-[#d21f32] focus:bg-white"
           />
         </label>
         {message ? (
@@ -142,7 +142,7 @@ export function AdminLoginForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-md bg-[#e23744] px-5 py-3 font-black text-white transition hover:bg-[#b91c2b] disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-full rounded-md bg-[#d21f32] px-5 py-3 font-black text-white transition hover:bg-[#b91c2b] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting
             ? "Please wait..."

@@ -47,7 +47,7 @@ export function AuthNavAction() {
           className="size-9 rounded-full object-cover"
         />
       ) : (
-        <span className="flex size-9 items-center justify-center rounded-full bg-[#fff0f2] text-xs font-black text-[#e23744]">
+        <span className="flex size-9 items-center justify-center rounded-full bg-[#fff0f2] text-xs font-black text-[#d21f32]">
           {initials}
         </span>
       )}

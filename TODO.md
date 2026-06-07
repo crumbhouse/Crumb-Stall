@@ -96,7 +96,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 
 ## Next Task
 
-- [ ] Add environment variable documentation for production.
+- [ ] Pick the next product or polish item after security and quality review.
 
 ## Customer Flow
 
@@ -164,22 +164,22 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add richer seed data.
 - [x] Add Redis integration where needed for caching/rate limiting.
 - [x] Add Cloudflare R2 storage integration for food images, review images, and invoice PDFs.
-- [ ] Add environment variable documentation for production.
-- [ ] Add deployment docs for Vercel, backend host, Supabase Postgres, and Redis.
+- [x] Add environment variable documentation for production.
+- [x] Add deployment docs for Vercel, backend host, Supabase Postgres, and Redis.
 
 ## Security And Quality
 
 - [x] Add request rate limiting.
-- [ ] Add secure CORS config per environment.
+- [x] Add secure CORS config per environment.
 - [x] Add payment signature verification tests.
-- [ ] Add webhook integration tests for Razorpay captured/failed events.
-- [ ] Add OTP hashing tests.
-- [ ] Add audit logs for admin actions.
-- [ ] Add API integration tests.
-- [ ] Add customer checkout E2E test.
-- [ ] Add admin menu management E2E test.
-- [ ] Add accessibility pass for customer UI.
-- [ ] Add mobile visual QA pass.
+- [x] Add webhook integration tests for Razorpay captured/failed events.
+- [x] Add OTP hashing tests.
+- [x] Add audit logs for admin actions.
+- [x] Add API integration tests.
+- [x] Add customer checkout E2E test.
+- [x] Add admin menu management E2E test.
+- [x] Add accessibility pass for customer UI.
+- [x] Add mobile visual QA pass.
 
 ## Notes
 

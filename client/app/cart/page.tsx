@@ -40,7 +40,7 @@ export default function CartPage() {
     <main className="min-h-screen bg-[#f6f6f4] pb-24 text-[#171717]">
       <CustomerNav />
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <p className="text-sm font-black uppercase tracking-[0.16em] text-[#e23744]">Cart</p>
+        <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">Cart</p>
         <h1 className="mt-2 text-3xl font-black">Review your order</h1>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -53,7 +53,7 @@ export default function CartPage() {
                 </p>
                 <Link
                   href="/login?callbackUrl=/menu"
-                  className="mt-6 inline-flex rounded-md bg-[#e23744] px-5 py-3 font-black text-white"
+                  className="mt-6 inline-flex rounded-md bg-[#d21f32] px-5 py-3 font-black text-white"
                 >
                   Login and order
                 </Link>
@@ -66,7 +66,7 @@ export default function CartPage() {
                 </p>
                 <Link
                   href="/menu"
-                  className="mt-6 inline-flex rounded-md bg-[#e23744] px-5 py-3 font-black text-white"
+                  className="mt-6 inline-flex rounded-md bg-[#d21f32] px-5 py-3 font-black text-white"
                 >
                   Browse menu
                 </Link>
@@ -110,7 +110,7 @@ export default function CartPage() {
                             rows={1}
                             maxLength={120}
                             placeholder="Example: less spicy, no onion, extra chutney"
-                            className="mt-2 w-full resize-none rounded-md border border-[#e8e8e3] bg-[#f9f9f7] px-3 py-2 text-sm font-semibold text-[#171717] outline-none placeholder:text-[#9a9a92] focus:border-[#e23744]"
+                            className="mt-2 w-full resize-none rounded-md border border-[#e8e8e3] bg-[#f9f9f7] px-3 py-2 text-sm font-semibold text-[#171717] outline-none placeholder:text-[#9a9a92] focus:border-[#d21f32]"
                           />
                         </label>
                       </div>
@@ -119,7 +119,7 @@ export default function CartPage() {
                           <button
                             type="button"
                             onClick={() => decreaseItem(item.id)}
-                            className="px-3 py-2 text-lg font-black text-[#e23744]"
+                            className="px-3 py-2 text-lg font-black text-[#d21f32]"
                             aria-label={`Decrease ${item.name}`}
                           >
                             -
@@ -128,7 +128,7 @@ export default function CartPage() {
                           <button
                             type="button"
                             onClick={() => increaseItem(item.id)}
-                            className="px-3 py-2 text-lg font-black text-[#e23744]"
+                            className="px-3 py-2 text-lg font-black text-[#d21f32]"
                             aria-label={`Increase ${item.name}`}
                           >
                             +
@@ -139,7 +139,7 @@ export default function CartPage() {
                           <button
                             type="button"
                             onClick={() => removeItem(item.id)}
-                            className="mt-1 text-sm font-black text-[#e23744]"
+                            className="mt-1 text-sm font-black text-[#d21f32]"
                           >
                             Remove
                           </button>
@@ -164,7 +164,7 @@ export default function CartPage() {
                 value={couponCode}
                 onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
                 placeholder="WELCOME10"
-                className="min-w-0 flex-1 rounded-md border border-[#e8e8e3] px-3 py-2 text-sm font-bold uppercase outline-none focus:border-[#e23744]"
+                className="min-w-0 flex-1 rounded-md border border-[#e8e8e3] px-3 py-2 text-sm font-bold uppercase outline-none focus:border-[#d21f32]"
               />
               <button
                 type="submit"
@@ -219,7 +219,7 @@ export default function CartPage() {
           </div>
           <Link
             href={items.length > 0 ? "/checkout" : "/menu"}
-            className="mt-6 flex justify-center rounded-md bg-[#e23744] px-5 py-3 font-black text-white transition hover:bg-[#b91c2b]"
+            className="mt-6 flex justify-center rounded-md bg-[#d21f32] px-5 py-3 font-black text-white transition hover:bg-[#b91c2b]"
           >
             {items.length > 0 ? "Proceed to checkout" : "Browse menu"}
           </Link>

@@ -46,8 +46,8 @@ export function FavoriteButton({
       title={isFavorite ? "Remove from saved" : "Save item"}
       className={`flex size-10 items-center justify-center rounded-full border text-lg font-black shadow-sm transition ${
         isFavorite
-          ? "border-[#e23744] bg-[#e23744] text-white"
-          : "border-white/70 bg-white/95 text-[#e23744] hover:bg-[#fff0f2]"
+          ? "border-[#d21f32] bg-[#d21f32] text-white"
+          : "border-white/70 bg-white/95 text-[#d21f32] hover:bg-[#fff0f2]"
       } ${isPending ? "opacity-70" : ""} ${className}`}
     >
       {isFavorite ? "♥" : "♡"}

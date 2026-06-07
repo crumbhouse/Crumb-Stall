@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { FoodType, Prisma } from '@prisma/client';
+import { IsOptional } from 'class-validator';
 
 export type FoodSort =
   | 'popular'
@@ -28,6 +29,40 @@ export type ListFoodQuery = {
   page: number;
   limit: number;
 };
+
+export class ListFoodQueryDto {
+  [key: string]: unknown;
+
+  @IsOptional()
+  search?: string;
+
+  @IsOptional()
+  category?: string;
+
+  @IsOptional()
+  type?: string;
+
+  @IsOptional()
+  available?: string | boolean;
+
+  @IsOptional()
+  featured?: string | boolean;
+
+  @IsOptional()
+  minPrice?: string | number;
+
+  @IsOptional()
+  maxPrice?: string | number;
+
+  @IsOptional()
+  sort?: string;
+
+  @IsOptional()
+  page?: string | number;
+
+  @IsOptional()
+  limit?: string | number;
+}
 
 export function parseListFoodQuery(
   query: Record<string, unknown>,
