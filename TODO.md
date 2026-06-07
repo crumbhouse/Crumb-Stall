@@ -82,6 +82,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add notifications APIs.
 - [x] Add customer notifications popover UI.
 - [x] Add review moderation UI.
+- [x] Add customer insights page.
 - [x] Add recommendation APIs.
 - [x] Add customer recommendation section on the menu page.
 - [x] Make unauthenticated customer navigation and add-to-cart behavior explicit.
@@ -95,7 +96,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 
 ## Next Task
 
-- [ ] Add customer insights page.
+- [ ] Add reports export UI.
 
 ## Customer Flow
 
@@ -153,7 +154,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add OTP handover verification panel.
 - [x] Add coupon CRUD UI.
 - [x] Add review moderation UI.
-- [ ] Add customer insights page.
+- [x] Add customer insights page.
 - [ ] Add reports export UI.
 
 ## Data And Infrastructure

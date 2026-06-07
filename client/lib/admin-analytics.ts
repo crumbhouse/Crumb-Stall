@@ -44,6 +44,36 @@ export type LiveQueueOrder = {
   itemPreview: string[];
 };
 
+export type CustomerInsights = {
+  data: {
+    summary: {
+      totalCustomers: number;
+      newCustomers30Days: number;
+      activeCustomers30Days: number;
+      repeatCustomers: number;
+      repeatRate: number;
+      averageLifetimeValue: number;
+    };
+    customers: Array<{
+      userId: string;
+      name: string | null;
+      email: string;
+      joinedAt: string;
+      lastActivity: string | null;
+      lastOrderAt: string | null;
+      orderCount: number;
+      itemCount: number;
+      totalSpend: number;
+      averageOrderValue: number;
+    }>;
+  };
+  meta: {
+    limit: number;
+    startsAt: string;
+    endsAt: string;
+  };
+};
+
 export async function getAdminAnalyticsSummary() {
   return fetchAdminAnalytics<AdminAnalyticsSummary>("summary");
 }
@@ -58,6 +88,12 @@ export async function getTopFoods({ days = 30, limit = 5 } = {}) {
 
 export async function getLiveQueue(limit = 8) {
   return fetchAdminAnalytics<{ data: LiveQueueOrder[] }>(`live-queue?limit=${limit}`);
+}
+
+export async function getCustomerInsights(limit = 20) {
+  const safeLimit = Math.max(1, Math.min(20, limit));
+
+  return fetchAdminAnalytics<CustomerInsights>(`customer-insights?limit=${safeLimit}`);
 }
 
 async function fetchAdminAnalytics<T>(path: string): Promise<T | null> {

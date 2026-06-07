@@ -110,10 +110,11 @@ Last updated: 2026-06-07
 - Simplified the active order flow by treating paid/placed orders as the same operational state. Admins now move paid/placed orders directly to preparing or cancelled; the separate confirmed step remains supported only for legacy orders already in that state.
 - Added admin coupon management with protected backend list/create/update/deactivate APIs, Next.js admin proxies, and a real `/admin/coupons` CRUD UI for code, discount type/value, minimum amount, validity window, usage limit, and active state.
 - Added review moderation with protected backend admin review list/update APIs, Next.js admin proxies, a `/admin/reviews` UI, and hide/restore actions that recalculate visible food ratings.
+- Added customer insights with a protected analytics endpoint and `/admin/customers` page showing total/new/active/repeat customers, repeat rate, average lifetime value, and top customers by spend.
 
 ## Current Next Task
 
-- Add customer insights page.
+- Add reports export UI.
 
 ## Local Setup Steps For You
 

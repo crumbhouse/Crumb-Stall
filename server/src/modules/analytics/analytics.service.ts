@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { OrderStatus, Prisma } from '@prisma/client';
+import { OrderStatus, Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import {
   AnalyticsLimitQuery,
@@ -255,6 +255,152 @@ export class AnalyticsService {
       })),
       meta: {
         limit: query.limit,
+      },
+    };
+  }
+
+  async getCustomerInsights(query: AnalyticsLimitQuery) {
+    const now = new Date();
+    const last30DaysStart = addDays(startOfDay(now), -30);
+    const [totalCustomers, newCustomers, orders] = await this.prisma.$transaction([
+      this.prisma.user.count({
+        where: {
+          role: UserRole.CUSTOMER,
+          isSuspended: false,
+        },
+      }),
+      this.prisma.user.count({
+        where: {
+          role: UserRole.CUSTOMER,
+          isSuspended: false,
+          createdAt: { gte: last30DaysStart },
+        },
+      }),
+      this.prisma.order.findMany({
+        where: {
+          status: { in: revenueStatuses },
+          user: {
+            role: UserRole.CUSTOMER,
+            isSuspended: false,
+          },
+        },
+        select: {
+          userId: true,
+          totalAmount: true,
+          placedAt: true,
+          createdAt: true,
+          items: {
+            select: {
+              quantity: true,
+            },
+          },
+          user: {
+            select: {
+              name: true,
+              email: true,
+              createdAt: true,
+              lastActivity: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    const customers = new Map<
+      string,
+      {
+        userId: string;
+        name: string | null;
+        email: string;
+        joinedAt: Date;
+        lastActivity: Date | null;
+        lastOrderAt: Date | null;
+        orderCount: number;
+        itemCount: number;
+        totalSpend: number;
+      }
+    >();
+
+    for (const order of orders) {
+      const orderDate = order.placedAt ?? order.createdAt;
+      const existing = customers.get(order.userId) ?? {
+        userId: order.userId,
+        name: order.user.name,
+        email: order.user.email,
+        joinedAt: order.user.createdAt,
+        lastActivity: order.user.lastActivity,
+        lastOrderAt: null,
+        orderCount: 0,
+        itemCount: 0,
+        totalSpend: 0,
+      };
+
+      existing.orderCount += 1;
+      existing.itemCount += order.items.reduce((sum, item) => sum + item.quantity, 0);
+      existing.totalSpend += order.totalAmount.toNumber();
+      existing.lastOrderAt =
+        !existing.lastOrderAt || orderDate > existing.lastOrderAt
+          ? orderDate
+          : existing.lastOrderAt;
+      customers.set(order.userId, existing);
+    }
+
+    const customerList = [...customers.values()];
+    const totalRevenue = customerList.reduce(
+      (sum, customer) => sum + customer.totalSpend,
+      0,
+    );
+    const activeCustomers30Days = customerList.filter(
+      (customer) =>
+        customer.lastOrderAt && customer.lastOrderAt >= last30DaysStart,
+    ).length;
+    const repeatCustomers = customerList.filter(
+      (customer) => customer.orderCount > 1,
+    ).length;
+
+    return {
+      data: {
+        summary: {
+          totalCustomers,
+          newCustomers30Days: newCustomers,
+          activeCustomers30Days,
+          repeatCustomers,
+          repeatRate:
+            customerList.length > 0
+              ? Math.round((repeatCustomers / customerList.length) * 100)
+              : 0,
+          averageLifetimeValue:
+            customerList.length > 0
+              ? Math.round(totalRevenue / customerList.length)
+              : 0,
+        },
+        customers: customerList
+          .sort(
+            (first, second) =>
+              second.totalSpend - first.totalSpend ||
+              second.orderCount - first.orderCount,
+          )
+          .slice(0, query.limit)
+          .map((customer) => ({
+            userId: customer.userId,
+            name: customer.name,
+            email: customer.email,
+            joinedAt: customer.joinedAt.toISOString(),
+            lastActivity: customer.lastActivity?.toISOString() ?? null,
+            lastOrderAt: customer.lastOrderAt?.toISOString() ?? null,
+            orderCount: customer.orderCount,
+            itemCount: customer.itemCount,
+            totalSpend: customer.totalSpend,
+            averageOrderValue:
+              customer.orderCount > 0
+                ? Math.round(customer.totalSpend / customer.orderCount)
+                : 0,
+          })),
+      },
+      meta: {
+        limit: query.limit,
+        startsAt: last30DaysStart.toISOString(),
+        endsAt: now.toISOString(),
       },
     };
   }

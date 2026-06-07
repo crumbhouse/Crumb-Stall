@@ -36,4 +36,11 @@ export class AnalyticsController {
   getLiveQueue(@Query() query: Record<string, unknown>) {
     return this.analyticsService.getLiveQueue(parseAnalyticsLimitQuery(query));
   }
+
+  @Get('customer-insights')
+  getCustomerInsights(@Query() query: Record<string, unknown>) {
+    return this.analyticsService.getCustomerInsights(
+      parseAnalyticsLimitQuery(query),
+    );
+  }
 }

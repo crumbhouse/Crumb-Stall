@@ -3,7 +3,13 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth-options";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
-const allowedMetrics = new Set(["summary", "revenue-trend", "top-foods", "live-queue"]);
+const allowedMetrics = new Set([
+  "summary",
+  "revenue-trend",
+  "top-foods",
+  "live-queue",
+  "customer-insights",
+]);
 
 export async function GET(
   request: Request,
