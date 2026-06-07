@@ -104,7 +104,7 @@ Last updated: 2026-06-07
 - Completed the current `bug.txt` pass: upgraded invoice PDF styling, added customer order live refresh, tightened notification polling, clarified ready/OTP handover, added admin order detail pages, redesigned admin login, added pending-payment detail recovery, and introduced 401/403/404 route handling.
 - Added admin category management with protected backend create/update/deactivate APIs, Next.js admin proxies, and a real `/admin/menu` category CRUD UI.
 - Added admin food item management with protected backend create/update/deactivate APIs, Next.js admin proxies, and `/admin/menu` food item CRUD for category, pricing, image URL, tags, ingredients, veg/non-veg, featured, popularity, and availability.
-- Added a local admin food-image upload flow. Admins can upload JPG, PNG, or WebP images up to 5MB from `/admin/menu`; files are stored under `client/public/uploads/foods` and the returned `/uploads/foods/...` URL is saved on the food item. Cloudflare R2 remains the later production storage task.
+- Added admin food-image upload flow. Admins can upload JPG, PNG, or WebP images up to 5MB from `/admin/menu`; files are stored in Cloudflare R2 and the returned app object URL is saved on the food item.
 - Added quick admin menu operations for item availability/inventory state and featured placement. Staff can hide/show items from the customer menu and feature/unfeature items without saving the full food form.
 - Hardened admin order status management with per-order allowed transitions. Admins can move orders through valid operational steps only, terminal orders cannot be reopened manually, and completion remains OTP-only.
 - Simplified the active order flow by treating paid/placed orders as the same operational state. Admins now move paid/placed orders directly to preparing or cancelled; the separate confirmed step remains supported only for legacy orders already in that state.
@@ -116,10 +116,14 @@ Last updated: 2026-06-07
 - Cleaned the environment examples so shared templates use placeholders instead of secret-looking local values.
 - Expanded Prisma seed data with a fuller menu, more coupons, demo customers, deterministic paid demo orders, invoices, reviews, favorites, and customer notifications.
 - Added optional Redis-backed infrastructure with an in-memory fallback and a global API rate-limit guard. `REDIS_URL`, `RATE_LIMIT_WINDOW_MS`, and `RATE_LIMIT_MAX` now control shared rate-limit counters when Redis is available.
+- Added Cloudflare R2-compatible private storage for admin food image uploads, customer review image uploads, and generated invoice PDF persistence. The frontend no longer needs R2 credentials or a public R2 base URL; app API routes proxy object reads from private R2. Objects are stored under `foods/YYYY/MM`, `reviews/YYYY/MM`, and `invoices/YYYY/MM`.
+- Added `docs/STORAGE.md` with R2 bucket, credentials, private object proxy, and deployment environment setup notes.
+- Added backend structured logging with request IDs, request timing logs, centralized exception logging, JSON/pretty output modes, and `docs/LOGGING.md` tracing guidance.
+- Fixed admin food image upload flow: uploading an image now only uploads to R2 and fills the form field; the food item is updated only when the admin saves the menu item. R2 object display routes now handle nested `scope/YYYY/MM/file` paths correctly.
 
 ## Current Next Task
 
-- Add Cloudflare R2 storage integration for food images, review images, and invoice PDFs.
+- Add environment variable documentation for production.
 
 ## Local Setup Steps For You
 

@@ -96,7 +96,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 
 ## Next Task
 
-- [ ] Add Cloudflare R2 storage integration for food images, review images, and invoice PDFs.
+- [ ] Add environment variable documentation for production.
 
 ## Customer Flow
 
@@ -163,7 +163,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add migration documentation.
 - [x] Add richer seed data.
 - [x] Add Redis integration where needed for caching/rate limiting.
-- [ ] Add Cloudflare R2 storage integration for food images, review images, and invoice PDFs.
+- [x] Add Cloudflare R2 storage integration for food images, review images, and invoice PDFs.
 - [ ] Add environment variable documentation for production.
 - [ ] Add deployment docs for Vercel, backend host, Supabase Postgres, and Redis.
 

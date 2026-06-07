@@ -26,6 +26,7 @@ export function FoodCard({
                 alt={item.name}
                 width={600}
                 height={450}
+                unoptimized
                 className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
               />
             ) : (

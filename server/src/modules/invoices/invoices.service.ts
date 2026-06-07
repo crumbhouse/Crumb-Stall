@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
+import { ObjectStorageService } from '../../infrastructure/storage/object-storage.service';
 
 const invoiceInclude = {
   order: {
@@ -31,7 +32,12 @@ type InvoiceRecord = Prisma.InvoiceGetPayload<{
 
 @Injectable()
 export class InvoicesService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(InvoicesService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly objectStorageService: ObjectStorageService,
+  ) {}
 
   async findByInvoiceNumber(invoiceNumber: string) {
     const invoice = await this.ensureInvoice(invoiceNumber);
@@ -40,12 +46,20 @@ export class InvoicesService {
   }
 
   async generatePdf(invoiceNumber: string) {
-    const invoice = mapInvoice(await this.ensureInvoice(invoiceNumber));
+    const invoiceRecord = await this.ensureInvoice(invoiceNumber);
+    const invoice = mapInvoice(invoiceRecord);
     const buffer = createInvoicePdf(invoice);
+    const invoiceUrl = await this.persistPdfIfConfigured(
+      invoiceRecord.id,
+      invoice.invoiceNumber,
+      buffer,
+      invoice.invoiceUrl,
+    );
 
     return {
       buffer,
       filename: `${invoice.invoiceNumber}.pdf`,
+      invoiceUrl,
     };
   }
 
@@ -88,6 +102,51 @@ export class InvoicesService {
       include: invoiceInclude,
     });
   }
+
+  private async persistPdfIfConfigured(
+    invoiceId: string,
+    invoiceNumber: string,
+    buffer: Buffer,
+    existingInvoiceUrl: string | null,
+  ) {
+    if (existingInvoiceUrl || !this.objectStorageService.isConfigured()) {
+      return existingInvoiceUrl;
+    }
+
+    const key = `invoices/${dateFolder()}/${invoiceNumber}.pdf`;
+    const invoiceUrl = `/api/uploads/objects/${key}`;
+
+    try {
+      await this.objectStorageService.upload({
+        key,
+        body: buffer,
+        contentType: 'application/pdf',
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Invoice PDF storage failed for ${invoiceNumber}. ${getErrorMessage(error)}`,
+      );
+      return null;
+    }
+
+    await this.prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { invoiceUrl },
+    });
+
+    return invoiceUrl;
+  }
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function dateFolder(date = new Date()) {
+  const year = String(date.getUTCFullYear());
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+
+  return `${year}/${month}`;
 }
 
 function normalizeInvoiceNumber(invoiceNumber: string) {

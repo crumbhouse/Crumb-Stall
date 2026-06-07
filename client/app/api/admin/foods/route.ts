@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth-options";
 
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
     body: await request.text(),
   });
 
+  revalidateCustomerMenu(response);
   return proxyResponse(response);
 }
 
@@ -67,4 +69,14 @@ async function proxyResponse(response: Response) {
       "Content-Type": response.headers.get("content-type") ?? "application/json",
     },
   });
+}
+
+function revalidateCustomerMenu(response: Response) {
+  if (!response.ok) {
+    return;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/menu");
+  revalidatePath("/favorites");
 }

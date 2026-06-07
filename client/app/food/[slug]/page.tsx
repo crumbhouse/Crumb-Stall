@@ -43,8 +43,8 @@ export default async function FoodDetailPage({ params }: { params: Promise<{ slu
               alt={item.name}
               width={900}
               height={675}
+              unoptimized
               className="aspect-[4/3] w-full object-cover"
-              priority
             />
           ) : null}
         </div>

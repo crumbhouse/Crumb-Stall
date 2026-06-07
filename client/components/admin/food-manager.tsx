@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState, useTransition } from "react";
 import {
@@ -252,7 +253,7 @@ function FoodFields({
     try {
       const payload = await uploadFoodImage(file);
       setImageUrl(payload.imageUrl);
-      setUploadMessage("Image uploaded");
+      setUploadMessage("Image uploaded. Save the item to keep it.");
     } catch (error) {
       setUploadMessage(error instanceof Error ? error.message : "Food image upload failed");
     } finally {
@@ -354,9 +355,12 @@ function FoodFields({
         </div>
         {imageUrl ? (
           <div className="flex items-center gap-3">
-            <img
+            <Image
               src={imageUrl}
               alt="Food preview"
+              width={64}
+              height={64}
+              unoptimized
               className="size-16 rounded-md object-cover ring-1 ring-stone-200"
             />
             <button

@@ -22,10 +22,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Login is required." }, { status: 401 });
   }
 
-  if (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ message: "Admin access is required." }, { status: 403 });
-  }
-
   const formData = await request.formData();
   const file = formData.get("file");
 
@@ -35,21 +31,21 @@ export async function POST(request: Request) {
 
   if (!allowedTypes.has(file.type)) {
     return NextResponse.json(
-      { message: "Only JPG, PNG, and WebP food images are supported." },
+      { message: "Only JPG, PNG, and WebP review images are supported." },
       { status: 400 },
     );
   }
 
   if (file.size > maxFileSize) {
     return NextResponse.json(
-      { message: "Food image must be 5MB or smaller." },
+      { message: "Review image must be 5MB or smaller." },
       { status: 400 },
     );
   }
 
   const uploadFormData = new FormData();
   uploadFormData.set("file", file);
-  const response = await fetch(`${apiUrl}/storage/admin/food-image`, {
+  const response = await fetch(`${apiUrl}/storage/review-image`, {
     method: "POST",
     headers: getAuthHeaders(session.user.email),
     body: uploadFormData,

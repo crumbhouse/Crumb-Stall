@@ -50,6 +50,10 @@ This milestone establishes:
 
    For the full database and migration workflow, see `docs/DATABASE.md`.
 
+   For Cloudflare R2 storage setup, see `docs/STORAGE.md`.
+
+   For backend request/error tracing, see `docs/LOGGING.md`.
+
 3. Start Redis if you want the optional local cache service:
 
    ```bash
