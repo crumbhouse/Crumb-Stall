@@ -111,10 +111,11 @@ Last updated: 2026-06-07
 - Added admin coupon management with protected backend list/create/update/deactivate APIs, Next.js admin proxies, and a real `/admin/coupons` CRUD UI for code, discount type/value, minimum amount, validity window, usage limit, and active state.
 - Added review moderation with protected backend admin review list/update APIs, Next.js admin proxies, a `/admin/reviews` UI, and hide/restore actions that recalculate visible food ratings.
 - Added customer insights with a protected analytics endpoint and `/admin/customers` page showing total/new/active/repeat customers, repeat rate, average lifetime value, and top customers by spend.
+- Added reports export with protected backend CSV and styled Excel endpoints, Next.js download proxies, and `/admin/reports` download UI for orders, customers, and food sales. Excel reports include title rows, styled headers, borders, filters, frozen rows, alternating row fills, and column widths. Fixed the Excel workbook XML so downloaded `.xlsx` reports open cleanly in Excel without repair prompts.
 
 ## Current Next Task
 
-- Add reports export UI.
+- Confirm local PostgreSQL 17 database setup for every developer environment.
 
 ## Local Setup Steps For You
 

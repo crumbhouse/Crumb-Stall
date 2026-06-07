@@ -14,6 +14,7 @@ const links = [
   { href: "/admin/reviews", label: "Reviews" },
   { href: "/admin/customers", label: "Customers" },
   { href: "/admin/analytics", label: "Analytics" },
+  { href: "/admin/reports", label: "Reports" },
 ];
 
 const superAdminLinks = [{ href: "/admin/approvals", label: "Approvals" }];

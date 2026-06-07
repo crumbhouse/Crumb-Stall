@@ -96,7 +96,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 
 ## Next Task
 
-- [ ] Add reports export UI.
+- [ ] Confirm local PostgreSQL 17 database setup for every developer environment.
 
 ## Customer Flow
 
@@ -139,7 +139,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add notifications APIs.
 - [x] Add recommendation APIs.
 - [x] Add analytics APIs.
-- [ ] Add reports APIs.
+- [x] Add reports APIs.
 
 ## Admin Flow
 
@@ -155,7 +155,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 - [x] Add coupon CRUD UI.
 - [x] Add review moderation UI.
 - [x] Add customer insights page.
-- [ ] Add reports export UI.
+- [x] Add reports export UI.
 
 ## Data And Infrastructure
 
