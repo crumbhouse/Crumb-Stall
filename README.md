@@ -26,7 +26,6 @@ This milestone establishes:
 1. Copy environment files:
 
    ```bash
-   cp .env.example .env
    cp server/.env.example server/.env
    cp client/.env.example client/.env.local
    ```
@@ -47,7 +46,9 @@ This milestone establishes:
    ```
 
    If your local PostgreSQL 17 uses a different user, password, port, or database name, update
-   `DATABASE_URL` in `.env` and `server/.env`.
+   `DATABASE_URL` in `server/.env`.
+
+   For the full database and migration workflow, see `docs/DATABASE.md`.
 
 3. Start Redis if you want the optional local cache service:
 

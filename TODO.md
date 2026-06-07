@@ -96,7 +96,7 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 
 ## Next Task
 
-- [ ] Confirm local PostgreSQL 17 database setup for every developer environment.
+- [ ] Add Cloudflare R2 storage integration for food images, review images, and invoice PDFs.
 
 ## Customer Flow
 
@@ -159,17 +159,17 @@ This is the working implementation checklist for Crumb Stall. We will proceed fr
 
 ## Data And Infrastructure
 
-- [ ] Confirm local PostgreSQL 17 database setup for every developer environment.
-- [ ] Add migration documentation.
-- [ ] Add richer seed data.
-- [ ] Add Redis integration where needed for caching/rate limiting.
+- [x] Confirm local PostgreSQL 17 database setup for every developer environment.
+- [x] Add migration documentation.
+- [x] Add richer seed data.
+- [x] Add Redis integration where needed for caching/rate limiting.
 - [ ] Add Cloudflare R2 storage integration for food images, review images, and invoice PDFs.
 - [ ] Add environment variable documentation for production.
 - [ ] Add deployment docs for Vercel, backend host, Supabase Postgres, and Redis.
 
 ## Security And Quality
 
-- [ ] Add request rate limiting.
+- [x] Add request rate limiting.
 - [ ] Add secure CORS config per environment.
 - [x] Add payment signature verification tests.
 - [ ] Add webhook integration tests for Razorpay captured/failed events.

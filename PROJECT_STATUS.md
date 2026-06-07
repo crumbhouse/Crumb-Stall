@@ -112,10 +112,14 @@ Last updated: 2026-06-07
 - Added review moderation with protected backend admin review list/update APIs, Next.js admin proxies, a `/admin/reviews` UI, and hide/restore actions that recalculate visible food ratings.
 - Added customer insights with a protected analytics endpoint and `/admin/customers` page showing total/new/active/repeat customers, repeat rate, average lifetime value, and top customers by spend.
 - Added reports export with protected backend CSV and styled Excel endpoints, Next.js download proxies, and `/admin/reports` download UI for orders, customers, and food sales. Excel reports include title rows, styled headers, borders, filters, frozen rows, alternating row fills, and column widths. Fixed the Excel workbook XML so downloaded `.xlsx` reports open cleanly in Excel without repair prompts.
+- Added `docs/DATABASE.md` with local PostgreSQL 17 setup checks, first-time Prisma setup, migration creation, local migration updates, and production migration notes.
+- Cleaned the environment examples so shared templates use placeholders instead of secret-looking local values.
+- Expanded Prisma seed data with a fuller menu, more coupons, demo customers, deterministic paid demo orders, invoices, reviews, favorites, and customer notifications.
+- Added optional Redis-backed infrastructure with an in-memory fallback and a global API rate-limit guard. `REDIS_URL`, `RATE_LIMIT_WINDOW_MS`, and `RATE_LIMIT_MAX` now control shared rate-limit counters when Redis is available.
 
 ## Current Next Task
 
-- Confirm local PostgreSQL 17 database setup for every developer environment.
+- Add Cloudflare R2 storage integration for food images, review images, and invoice PDFs.
 
 ## Local Setup Steps For You
 
@@ -150,6 +154,8 @@ Last updated: 2026-06-07
    ```
 
    The latest payment hardening migration adds checkout idempotency fields and the Razorpay webhook event ledger, so `npm run db:migrate` is required before testing real payments.
+
+   The detailed database and migration workflow is documented in `docs/DATABASE.md`.
 
    The seed creates the super admin:
 
@@ -240,7 +246,6 @@ Last updated: 2026-06-07
 
 ## Known Notes And Caveats
 
-- The root `README.md` mentions a root `.env.example`, but this repo currently has `server/.env.example` and `client/.env.example`.
 - Unauthenticated cart data remains client-local and is not represented by a database user.
 - Favorites require login and are persisted against the signed-in user.
 - Reviews require login for submission and are restricted to the signed-in user's paid/placed-or-later order history. Customers rate an order once, and that star rating is applied to all food items in the order.
@@ -255,3 +260,4 @@ Last updated: 2026-06-07
 - Server build: `npm run build`
 - Client lint: `npm run lint`
 - Client build: `npm run build`
+- Latest local PostgreSQL readiness check: `pg_isready -h localhost -p 5432` returned no response, so rerun `cd server && npm run db:seed` after PostgreSQL is running.
