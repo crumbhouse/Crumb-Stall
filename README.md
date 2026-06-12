@@ -1,120 +1,36 @@
-# Crumb Stall
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Crumb Stall is a mobile-first food ordering platform for a student-focused food stall.
+## Getting Started
 
-## Project Layout
+First, run the development server:
 
-- `client`: Next.js frontend for customers and admins
-- `server`: NestJS API
-- `server/prisma`: Prisma schema and seed data
-- `docker-compose.yml`: Optional local Redis service
-- `PROJECT_STATUS.md`: completed work and local setup handoff notes
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-## Phase 0 Foundation
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-This milestone establishes:
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-- PostgreSQL 17 local database setup
-- Optional Redis local infrastructure
-- Prisma data model for the ordering platform
-- NestJS database provider and feature module skeletons
-- Shared environment templates
-- Basic API health route
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Local Development
+## Learn More
 
-1. Copy environment files:
+To learn more about Next.js, take a look at the following resources:
 
-   ```bash
-   cp server/.env.example server/.env
-   cp client/.env.example client/.env.local
-   ```
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-2. Create the local PostgreSQL database and user if they do not already exist.
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-   The default environment files expect:
+## Deploy on Vercel
 
-   ```text
-   postgresql://crumbstall:crumbstall@localhost:5432/crumbstall?schema=public
-   ```
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-   Example using `psql`:
-
-   ```bash
-   createuser crumbstall --pwprompt
-   createdb crumbstall --owner crumbstall
-   ```
-
-   If your local PostgreSQL 17 uses a different user, password, port, or database name, update
-   `DATABASE_URL` in `server/.env`.
-
-   For the full database and migration workflow, see `docs/DATABASE.md`.
-
-   For Cloudflare R2 storage setup, see `docs/STORAGE.md`.
-
-   For backend request/error tracing, see `docs/LOGGING.md`.
-
-   For production environment variables, see `docs/ENVIRONMENT.md`.
-
-   For deployment steps, see `docs/DEPLOYMENT.md`.
-
-3. Start Redis if you want the optional local cache service:
-
-   ```bash
-   docker compose up -d
-   ```
-
-   If you already run Redis locally too, you can skip Docker entirely.
-
-4. Install server dependencies added for Prisma:
-
-   ```bash
-   cd server
-   npm install
-   npm run db:generate
-   npm run db:migrate
-   npm run db:seed
-   ```
-
-5. Run the apps in separate terminals:
-
-   ```bash
-   cd server
-   npm run start:dev
-   ```
-
-   ```bash
-   cd client
-   npm run dev
-   ```
-
-## Google OAuth
-
-Auth.js is configured in the frontend through `client/app/api/auth/[...nextauth]`.
-To enable Google login locally:
-
-1. Create OAuth credentials in Google Cloud Console.
-2. Add this authorized redirect URI:
-
-   ```text
-   http://localhost:3000/api/auth/callback/google
-   ```
-
-3. Set these values in `client/.env.local`:
-
-   ```text
-   NEXTAUTH_URL="http://localhost:3000"
-   NEXTAUTH_SECRET="generate-a-long-random-secret"
-   GOOGLE_CLIENT_ID="your-google-client-id"
-   GOOGLE_CLIENT_SECRET="your-google-client-secret"
-   AUTH_SYNC_SECRET="same-long-random-sync-secret-as-server"
-   ```
-
-4. Set this matching value in `server/.env`:
-
-   ```text
-   AUTH_SYNC_SECRET="same-long-random-sync-secret-as-client"
-   ```
-
-After Google sign-in, the frontend syncs the profile to the backend through
-`POST /api/v1/auth/google/sync`.
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
