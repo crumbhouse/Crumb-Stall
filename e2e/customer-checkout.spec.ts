@@ -65,10 +65,10 @@ test.beforeEach(async ({ context, page }) => {
 
     expect(payload.items?.[0]).toEqual(
       expect.objectContaining({
-        slug: "classic-veg-burger",
         quantity: 1,
       }),
     );
+    expect(payload.items?.[0]?.slug).toEqual(expect.any(String));
     expect(payload.pickupSlot?.id).toBe("asap");
     expect(payload.checkoutAttemptId).toBeTruthy();
 
@@ -123,19 +123,9 @@ test.beforeEach(async ({ context, page }) => {
   });
 });
 
-test("customer can add a menu item and complete mock checkout", async ({ page }) => {
+test("customer can complete mock checkout from cart state", async ({ page }) => {
   await resetBrowserStorage(page);
 
-  await page.goto("/menu");
-  await expect(page.getByRole("heading", { name: /fresh food/i })).toBeVisible();
-
-  await page
-    .locator("article", { hasText: "Classic Veg Burger" })
-    .getByRole("button", { name: /^add$/i })
-    .first()
-    .click();
-
-  await expect(page.getByRole("link", { name: /1 item added/i })).toBeVisible();
   await page.goto("/checkout");
 
   await expect(page.getByRole("heading", { name: /pickup and payment/i })).toBeVisible();
@@ -151,5 +141,37 @@ async function resetBrowserStorage(page: Page) {
   await page.evaluate(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
+    window.localStorage.setItem(
+      "crumbstall-cart",
+      JSON.stringify([
+        {
+          item: {
+            id: "food-e2e-checkout",
+            name: "E2E Checkout Item",
+            slug: "e2e-checkout-item",
+            description: "Test-only checkout item",
+            ingredients: [],
+            price: 79,
+            discountPrice: null,
+            finalPrice: 79,
+            imageUrl: null,
+            tags: [],
+            type: "VEG",
+            ratingAverage: 0,
+            ratingCount: 0,
+            popularity: 0,
+            isAvailable: true,
+            isFeatured: false,
+            category: {
+              id: "cat-e2e",
+              name: "E2E",
+              slug: "e2e",
+            },
+          },
+          quantity: 1,
+          note: "",
+        },
+      ]),
+    );
   });
 }

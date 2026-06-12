@@ -58,7 +58,7 @@ test("mobile menu layout keeps primary ordering controls visible", async ({ page
   await page.goto("/menu");
 
   await expect(page.getByRole("heading", { name: /fresh food/i })).toBeVisible();
-  await expect(page.getByPlaceholder(/search burger/i)).toBeVisible();
+  await expect(page.getByPlaceholder(/search the menu/i)).toBeVisible();
   await expect(page.getByRole("navigation").last()).toBeVisible();
   await expect(page.getByRole("link", { name: /cart/i })).toBeVisible();
 

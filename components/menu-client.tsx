@@ -21,7 +21,15 @@ const quickFilters: Array<{ id: ActiveFilter; label: string }> = [
   { id: "veg", label: "Veg only" },
 ];
 
-export function MenuClient({ categories, foods }: { categories: Category[]; foods: FoodItem[] }) {
+export function MenuClient({
+  categories,
+  foods,
+  isUnavailable = false,
+}: {
+  categories: Category[];
+  foods: FoodItem[];
+  isUnavailable?: boolean;
+}) {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
@@ -35,8 +43,8 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
     [recommendations],
   );
   const recommendationItems = recommendations.length > 0 ? recommendations : featured;
-  const combo = foods.find((item) => item.slug === "burger-coffee-combo") ?? featured[0];
-  const comboImageUrl = combo ? getFoodImageUrl(combo) : null;
+  const heroItem = featured[0] ?? foods[0];
+  const heroImageUrl = heroItem ? getFoodImageUrl(heroItem) : null;
 
   const filteredFoods = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -73,6 +81,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
 
   const hasSearchOrQuickFilter = query.trim() !== "" || activeFilter !== "all";
   const hasActiveFilters = hasSearchOrQuickFilter || activeCategory !== "all";
+  const hasNoCatalogItems = foods.length === 0 && !hasActiveFilters;
   const activeCategoryName =
     activeCategory === "all"
       ? "All categories"
@@ -162,9 +171,6 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
               <span className="rounded-md bg-[#f1f1ee] px-3 py-1 text-xs font-bold text-[#555]">
                 Pickup in 12-18 min
               </span>
-              <span className="rounded-md bg-[#fff0f2] px-3 py-1 text-xs font-bold text-[#b91c2b]">
-                WELCOME10 active
-              </span>
             </div>
 
             <div className="mt-5 max-w-3xl">
@@ -194,7 +200,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 className="min-w-0 flex-1 bg-transparent px-3 py-3 text-base font-semibold text-[#171717] outline-none placeholder:text-[#666666]"
-                placeholder="Search burger, momos, coffee..."
+                placeholder="Search the menu..."
               />
               {query ? (
                 <button
@@ -235,41 +241,36 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
             </div>
           </div>
 
-          <aside
-            className={`overflow-hidden rounded-lg bg-[#171717] text-white shadow-[0_18px_50px_rgba(20,20,20,0.18)] ${
-              hasActiveFilters ? "hidden lg:block" : ""
-            }`}
-          >
-            {comboImageUrl ? (
-              <div className="h-36 bg-cover bg-center" style={{ backgroundImage: `url(${comboImageUrl})` }} />
-            ) : null}
-            <div className="p-5">
-              <p className="text-sm font-black uppercase tracking-[0.16em] text-[#ffb8bf]">
-                Today&apos;s crowd favorite
-              </p>
-              <h2 className="mt-2 text-3xl font-black leading-tight">
-                {combo?.name ?? "Chef recommended combo"}
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-white/75">
-                {combo?.description ??
-                  "A filling snack combo for rushed class breaks. Best value before the lunch queue."}
-              </p>
-              <div className="mt-5 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-bold text-white/60">Price</p>
-                  <p className="text-3xl font-black">Rs {combo?.finalPrice ?? 139}</p>
-                </div>
-                {combo ? (
+          {heroItem ? (
+            <aside
+              className={`overflow-hidden rounded-lg bg-[#171717] text-white shadow-[0_18px_50px_rgba(20,20,20,0.18)] ${
+                hasActiveFilters ? "hidden lg:block" : ""
+              }`}
+            >
+              {heroImageUrl ? (
+                <div className="h-36 bg-cover bg-center" style={{ backgroundImage: `url(${heroImageUrl})` }} />
+              ) : null}
+              <div className="p-5">
+                <p className="text-sm font-black uppercase tracking-[0.16em] text-[#ffb8bf]">
+                  Featured item
+                </p>
+                <h2 className="mt-2 text-3xl font-black leading-tight">{heroItem.name}</h2>
+                <p className="mt-3 text-sm leading-6 text-white/75">{heroItem.description}</p>
+                <div className="mt-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-white/60">Price</p>
+                    <p className="text-3xl font-black">Rs {heroItem.finalPrice}</p>
+                  </div>
                   <AddToCartButton
-                    item={combo}
+                    item={heroItem}
                     className="rounded-md bg-white px-4 py-3 text-sm font-black text-[#171717]"
                   >
-                    Add combo
+                    Add item
                   </AddToCartButton>
-                ) : null}
+                </div>
               </div>
-            </div>
-          </aside>
+            </aside>
+          ) : null}
         </div>
       </section>
 
@@ -344,7 +345,7 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
         </section>
       ) : null}
 
-      {!hasActiveFilters ? (
+      {!hasActiveFilters && recommendationItems.length > 0 ? (
         <section className="mx-auto max-w-7xl px-4 pb-2 sm:px-6 lg:px-8">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
@@ -441,17 +442,29 @@ export function MenuClient({ categories, foods }: { categories: Category[]; food
 
         {filteredFoods.length === 0 ? (
           <div className="rounded-lg border border-dashed border-[#d7d7cf] bg-white p-8 text-center">
-            <p className="text-2xl font-black">No matching items</p>
-            <p className="mt-2 text-sm font-semibold text-[#646464]">
-              Try clearing the search or choosing a different category.
+            <p className="text-2xl font-black">
+              {isUnavailable
+                ? "Menu could not be loaded"
+                : hasNoCatalogItems
+                  ? "No menu items available"
+                  : "No matching items"}
             </p>
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="mt-6 rounded-md bg-[#d21f32] px-5 py-3 font-black text-white"
-            >
-              Clear filters
-            </button>
+            <p className="mt-2 text-sm font-semibold text-[#646464]">
+              {isUnavailable
+                ? "Menu data could not be loaded. Please confirm the backend is running and try again."
+                : hasNoCatalogItems
+                  ? "Add food items from the admin menu to make them visible here."
+                : "Try clearing the search or choosing a different category."}
+            </p>
+            {!isUnavailable && !hasNoCatalogItems ? (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="mt-6 rounded-md bg-[#d21f32] px-5 py-3 font-black text-white"
+              >
+                Clear filters
+              </button>
+            ) : null}
           </div>
         ) : (
           <div className="grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3">

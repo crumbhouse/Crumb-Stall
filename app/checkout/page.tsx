@@ -285,7 +285,7 @@ export default function CheckoutPage() {
                   value={couponCode}
                   onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
                   className="min-w-0 flex-1 rounded-md border border-[#e8e8e3] px-4 py-3 font-semibold outline-none focus:border-[#d21f32]"
-                  placeholder="WELCOME10"
+                  placeholder="Enter coupon"
                 />
                 <button
                   type="submit"

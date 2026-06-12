@@ -163,7 +163,7 @@ export default function CartPage() {
                 id="cart-coupon"
                 value={couponCode}
                 onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
-                placeholder="WELCOME10"
+                placeholder="Enter coupon"
                 className="min-w-0 flex-1 rounded-md border border-[#e8e8e3] px-3 py-2 text-sm font-bold uppercase outline-none focus:border-[#d21f32]"
               />
               <button
