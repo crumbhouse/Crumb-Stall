@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 
 type Notification = {
@@ -29,6 +29,8 @@ export function NotificationPopover() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [dismissedToastId, setDismissedToastId] = useState<string | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
 
   const isSignedIn = status === "authenticated";
 
@@ -52,6 +54,36 @@ export function NotificationPopover() {
     () => notifications.find((notification) => !notification.readAt),
     [notifications],
   );
+
+  const shouldShowLatestToast =
+    Boolean(latestUnread) && !open && latestUnread?.id !== dismissedToastId;
+
+  useEffect(() => {
+    if (!latestUnread || open) {
+      return;
+    }
+
+    const notificationId = latestUnread.id;
+    const timeoutId = window.setTimeout(() => setDismissedToastId(notificationId), 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [latestUnread, open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!popoverRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [open]);
 
   if (!isSignedIn) {
     return null;
@@ -121,7 +153,7 @@ export function NotificationPopover() {
   }
 
   return (
-    <div className="relative shrink-0">
+    <div ref={popoverRef} className="relative shrink-0">
       <button
         type="button"
         onClick={() => {
@@ -152,7 +184,7 @@ export function NotificationPopover() {
         ) : null}
       </button>
 
-      {latestUnread ? (
+      {latestUnread && shouldShowLatestToast ? (
         <div className="pointer-events-none absolute right-0 top-12 hidden w-72 rounded-lg border border-[#ffe0e4] bg-white p-3 text-sm shadow-[0_18px_50px_rgba(0,0,0,0.16)] lg:block">
           <p className="font-black text-[#171717]">{latestUnread.title}</p>
           <p className="mt-1 max-h-10 overflow-hidden font-semibold text-[#646464]">
@@ -162,7 +194,7 @@ export function NotificationPopover() {
       ) : null}
 
       {open ? (
-        <div className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-[#e8e8e3] bg-white p-4 shadow-[0_22px_70px_rgba(0,0,0,0.18)]">
+        <div className="fixed right-3 top-20 z-50 w-[min(22rem,calc(100vw-1.5rem))] rounded-lg border border-[#e8e8e3] bg-white p-4 shadow-[0_22px_70px_rgba(0,0,0,0.18)] sm:absolute sm:right-0 sm:top-12 sm:w-[min(22rem,calc(100vw-2rem))]">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-black uppercase tracking-[0.14em] text-[#d21f32]">

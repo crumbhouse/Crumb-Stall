@@ -168,11 +168,11 @@ function QueueList({ orders }: { orders: LiveQueueOrder[] }) {
           className="grid gap-3 rounded-lg bg-[#fbfaf7] p-4 md:grid-cols-[1fr_140px_120px] md:items-center"
         >
           <div>
-            <Link href={`/orders/${order.orderNumber}`} className="font-black">
+            <Link href={`/admin/orders/${order.orderNumber}`} className="font-black">
               {order.orderNumber}
             </Link>
             <p className="mt-1 text-sm font-semibold text-stone-500">
-              {order.customer.name ?? "Customer"} · {order.customer.email}
+              {order.customer.name ?? "Customer"} · {formatCustomerContact(order.customer)}
             </p>
             {order.itemPreview.length > 0 ? (
               <p className="mt-2 text-sm font-semibold text-stone-600">
@@ -200,6 +200,14 @@ function EmptyState({ text }: { text: string }) {
 
 function formatCurrency(value: number) {
   return `Rs ${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(value)}`;
+}
+
+function formatCustomerContact(customer: { email: string; phone?: string | null }) {
+  if (customer.phone) {
+    return customer.phone;
+  }
+
+  return customer.email.includes("@crumbstall.local") ? "Counter customer" : customer.email;
 }
 
 function formatNumber(value: number) {

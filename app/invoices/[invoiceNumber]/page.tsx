@@ -61,7 +61,11 @@ export default async function InvoicePage({
           <div className="grid gap-5 border-b border-[#e8e8e3] bg-[#fffaf2] p-5 sm:grid-cols-3">
             <InvoiceMeta label="Order" value={invoice.orderNumber} helper={formatStatus(invoice.orderStatus)} />
             <InvoiceMeta label="Customer" value={invoice.customer.name} helper={invoice.customer.email} />
-            <InvoiceMeta label="Payment" value={invoice.payment?.status ?? "Captured"} helper={invoice.payment?.paymentId ?? "Payment captured"} />
+            <InvoiceMeta
+              label="Payment"
+              value={formatPaymentStatus(invoice.payment?.status, invoice.orderStatus)}
+              helper={invoice.payment?.paymentId ?? formatCashPaymentHelper(invoice.orderStatus)}
+            />
           </div>
 
           <div className="p-5">
@@ -157,6 +161,12 @@ function InvoiceTotals({ invoice }: { invoice: InvoiceDetail }) {
         <span>Tax</span>
         <span>{formatCurrency(invoice.taxAmount)}</span>
       </div>
+      {invoice.pickupFeeAmount > 0 ? (
+        <div className="flex justify-between gap-4 text-[#8a5a00]">
+          <span>ASAP priority fee</span>
+          <span>{formatCurrency(invoice.pickupFeeAmount)}</span>
+        </div>
+      ) : null}
       <div className="flex justify-between gap-4 border-t border-[#e8e8e3] pt-3 text-lg font-black text-[#171717]">
         <span>Total paid</span>
         <span>{formatCurrency(invoice.totalAmount)}</span>
@@ -178,6 +188,25 @@ function formatDateTime(value: string | undefined | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatPaymentStatus(status: string | undefined | null, orderStatus: string) {
+  switch (status) {
+    case "CAPTURED":
+      return "Captured";
+    case "CREATED":
+      return "Payment created";
+    case "FAILED":
+      return "Failed";
+    case "REFUNDED":
+      return "Refunded";
+    default:
+      return orderStatus === "PENDING_PAYMENT" ? "Pending at counter" : "Paid at counter";
+  }
+}
+
+function formatCashPaymentHelper(orderStatus: string) {
+  return orderStatus === "PENDING_PAYMENT" ? "Awaiting counter confirmation" : "Paid in cash";
 }
 
 function formatStatus(status: string) {

@@ -122,7 +122,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
               <div className="flex justify-between gap-4">
                 <span>Payment</span>
                 <span className="font-black text-[#171717]">
-                  {formatPaymentStatus(order.payment?.status)}
+                  {formatPaymentStatus(order.payment?.status, order.status)}
                 </span>
               </div>
               <div className="flex justify-between gap-4">
@@ -139,6 +139,12 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ or
                 <span>Tax</span>
                 <span>Rs {order.taxAmount}</span>
               </div>
+              {order.pickupFeeAmount > 0 ? (
+                <div className="flex justify-between gap-4 text-[#8a5a00]">
+                  <span>ASAP priority fee</span>
+                  <span>Rs {order.pickupFeeAmount}</span>
+                </div>
+              ) : null}
               <div className="flex justify-between gap-4 border-t border-[#e8e8e3] pt-3 text-base font-black text-[#171717]">
                 <span>Total</span>
                 <span>Rs {order.totalAmount}</span>
@@ -199,7 +205,7 @@ function formatDateTime(value: string | undefined | null) {
   }).format(new Date(value));
 }
 
-function formatPaymentStatus(status: string | undefined | null) {
+function formatPaymentStatus(status: string | undefined | null, orderStatus: string) {
   switch (status) {
     case "CAPTURED":
       return "Captured";
@@ -210,7 +216,7 @@ function formatPaymentStatus(status: string | undefined | null) {
     case "REFUNDED":
       return "Refunded";
     default:
-      return "Captured";
+      return orderStatus === "PENDING_PAYMENT" ? "Pending at counter" : "Paid at counter";
   }
 }
 

@@ -14,6 +14,7 @@ import { useSession } from "next-auth/react";
 import { getBackendCart, replaceBackendCart } from "@/lib/backend-cart";
 import type { FoodItem } from "@/lib/catalog";
 import { validateCoupon } from "@/lib/coupons";
+import { getAvailableFoodItem } from "@/lib/food-availability";
 import { consumePendingCartItem } from "@/lib/pending-cart-item";
 
 type CartItem = {
@@ -35,6 +36,7 @@ export type PickupSlot = {
   label: string;
   description: string;
   minutesFromNow: number;
+  fee: number;
 };
 
 type CartContextValue = {
@@ -46,6 +48,7 @@ type CartContextValue = {
   subtotal: number;
   discount: number;
   tax: number;
+  pickupFee: number;
   total: number;
   addItem: (item: FoodItem) => void;
   removeItem: (itemId: string) => void;
@@ -60,6 +63,7 @@ type CartContextValue = {
 };
 
 const TAX_RATE = 0.05;
+const ASAP_PICKUP_FEE = 5;
 const STORAGE_KEY = "crumbstall-cart";
 const COUPON_STORAGE_KEY = "crumbstall-coupon";
 const PICKUP_STORAGE_KEY = "crumbstall-pickup-slot";
@@ -68,20 +72,23 @@ export const PICKUP_SLOTS: PickupSlot[] = [
   {
     id: "asap",
     label: "ASAP",
-    description: "Prepare as soon as possible",
+    description: `Prepare as soon as possible (+Rs ${ASAP_PICKUP_FEE})`,
     minutesFromNow: 0,
+    fee: ASAP_PICKUP_FEE,
   },
   {
     id: "15-min",
     label: "15 min",
     description: "Collect after 15 minutes",
     minutesFromNow: 15,
+    fee: 0,
   },
   {
     id: "30-min",
     label: "30 min",
     description: "Collect after 30 minutes",
     minutesFromNow: 30,
+    fee: 0,
   },
 ];
 
@@ -252,7 +259,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const pendingItem = consumePendingCartItem();
 
     if (pendingItem) {
-      window.setTimeout(() => addItem(pendingItem), 0);
+      window.setTimeout(() => {
+        void getAvailableFoodItem(pendingItem.slug)
+          .then((availableItem) => addItem(availableItem))
+          .catch((error) => {
+            console.warn("Pending cart item is unavailable.", error);
+          });
+      }, 0);
     }
   }, [addItem, hasSyncedBackendCart, isAuthenticated, isReady]);
 
@@ -317,6 +330,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const discount = coupon ? calculateDiscount(coupon, subtotal) : 0;
     const taxableAmount = Math.max(subtotal - discount, 0);
     const tax = Math.round(taxableAmount * TAX_RATE);
+    const pickupFee = pickupSlot?.fee ?? 0;
 
     const applyCoupon = async (code: string) => {
       const normalizedCode = code.trim().toUpperCase();
@@ -346,7 +360,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       subtotal,
       discount,
       tax,
-      total: taxableAmount + tax,
+      pickupFee,
+      total: taxableAmount + tax + pickupFee,
       addItem,
       removeItem,
       increaseItem,

@@ -18,10 +18,22 @@ export async function getAdminOrders({
   page = 1,
   status,
   search,
+  dateFrom,
+  dateTo,
+  minTotal,
+  maxTotal,
+  paymentStatus,
+  paymentProvider,
 }: {
   page?: number;
   status?: string;
   search?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  minTotal?: string;
+  maxTotal?: string;
+  paymentStatus?: string;
+  paymentProvider?: string;
 } = {}) {
   const params = new URLSearchParams({
     page: String(page),
@@ -34,6 +46,30 @@ export async function getAdminOrders({
 
   if (search) {
     params.set("search", search);
+  }
+
+  if (dateFrom) {
+    params.set("dateFrom", dateFrom);
+  }
+
+  if (dateTo) {
+    params.set("dateTo", dateTo);
+  }
+
+  if (minTotal) {
+    params.set("minTotal", minTotal);
+  }
+
+  if (maxTotal) {
+    params.set("maxTotal", maxTotal);
+  }
+
+  if (paymentStatus) {
+    params.set("paymentStatus", paymentStatus);
+  }
+
+  if (paymentProvider) {
+    params.set("paymentProvider", paymentProvider);
   }
 
   const cookieHeader = (await cookies()).toString();

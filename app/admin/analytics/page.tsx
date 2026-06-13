@@ -192,11 +192,11 @@ function QueueTable({ orders }: { orders: LiveQueueOrder[] }) {
           className="grid gap-3 border-b border-stone-100 p-4 last:border-0 xl:grid-cols-[1fr_160px_160px_120px] xl:items-center"
         >
           <div>
-            <Link href={`/orders/${order.orderNumber}`} className="font-black">
+            <Link href={`/admin/orders/${order.orderNumber}`} className="font-black">
               {order.orderNumber}
             </Link>
             <p className="mt-1 text-sm font-semibold text-stone-500">
-              {order.customer.name ?? "Customer"} · {order.customer.email}
+              {order.customer.name ?? "Customer"} · {formatCustomerContact(order.customer)}
             </p>
           </div>
           <span className="w-fit rounded-full bg-orange-100 px-3 py-1 text-xs font-black text-orange-700">
@@ -226,6 +226,14 @@ function totalRevenue(data: RevenueTrendPoint[]) {
 
 function formatCurrency(value: number) {
   return `Rs ${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(value)}`;
+}
+
+function formatCustomerContact(customer: { email: string; phone?: string | null }) {
+  if (customer.phone) {
+    return customer.phone;
+  }
+
+  return customer.email.includes("@crumbstall.local") ? "Counter customer" : customer.email;
 }
 
 function formatNumber(value: number) {

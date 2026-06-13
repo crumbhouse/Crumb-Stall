@@ -19,6 +19,7 @@ export type StartCheckoutOrderPayload = {
     id: string;
     label: string;
     minutesFromNow: number;
+    fee?: number;
   };
   checkoutAttemptId?: string;
 };
@@ -31,6 +32,7 @@ type CheckoutOrderResponse = {
   subtotalAmount: number;
   taxAmount: number;
   discountAmount: number;
+  pickupFeeAmount: number;
   totalAmount: number;
   paymentId?: string;
 };
@@ -59,6 +61,23 @@ export async function startCheckoutOrder(payload: StartCheckoutOrderPayload) {
   }
 
   return (await response.json()) as StartCheckoutOrderResponse;
+}
+
+export async function createCashCheckoutOrder(payload: StartCheckoutOrderPayload) {
+  const response = await fetch("/api/checkout/cash", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorPayload = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(errorPayload?.message ?? "Could not place cash order");
+  }
+
+  return (await response.json()) as CheckoutOrderResponse;
 }
 
 export async function confirmCheckoutPayment(payload: {

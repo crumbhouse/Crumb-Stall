@@ -82,12 +82,13 @@ test.beforeEach(async ({ context, page }) => {
         subtotalAmount: 79,
         taxAmount: 4,
         discountAmount: 0,
-        totalAmount: 83,
+        pickupFeeAmount: 5,
+        totalAmount: 88,
         razorpay: {
           mode: "mock",
           keyId: "rzp_test_e2e",
           orderId: "order_e2e_checkout",
-          amount: 8300,
+          amount: 8800,
           currency: "INR",
           receipt: orderNumber,
         },
@@ -116,7 +117,8 @@ test.beforeEach(async ({ context, page }) => {
         subtotalAmount: 79,
         taxAmount: 4,
         discountAmount: 0,
-        totalAmount: 83,
+        pickupFeeAmount: 5,
+        totalAmount: 88,
         paymentId: "payment-e2e",
       }),
     });
@@ -131,7 +133,7 @@ test("customer can complete mock checkout from cart state", async ({ page }) => 
   await expect(page.getByRole("heading", { name: /pickup and payment/i })).toBeVisible();
   await page.getByRole("button", { name: /^asap/i }).click();
 
-  await page.getByRole("button", { name: /pay with razorpay/i }).click();
+  await page.getByRole("button", { name: /pay online/i }).click();
 
   await expect(page).toHaveURL(new RegExp(`/orders/${orderNumber}$`));
 });

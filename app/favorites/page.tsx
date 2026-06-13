@@ -1,10 +1,10 @@
 import { CustomerNav } from "@/components/customer-nav";
 import { FavoritesClient } from "@/components/favorites-client";
 import { MobileBar } from "@/components/mobile-bar";
-import { getFavorites } from "@/lib/favorites";
+import { getServerFavorites } from "@/lib/favorites-server";
 
 export default async function FavoritesPage() {
-  const favorites = await getFavorites();
+  const favorites = await getServerFavorites();
 
   return (
     <main className="min-h-screen bg-[#f6f6f4] pb-20 text-[#171717]">

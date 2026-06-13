@@ -22,6 +22,7 @@ export type InvoiceDetail = {
   subtotalAmount: number;
   taxAmount: number;
   discountAmount: number;
+  pickupFeeAmount: number;
   totalAmount: number;
   couponCode: string | null;
   payment: {

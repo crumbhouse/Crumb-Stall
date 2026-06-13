@@ -8,6 +8,7 @@ import { CustomerNav } from "@/components/customer-nav";
 import { PICKUP_SLOTS, useCart } from "@/lib/cart";
 import {
   confirmCheckoutPayment,
+  createCashCheckoutOrder,
   loadRazorpayCheckout,
   recoverCheckoutOrder,
   startCheckoutOrder,
@@ -28,6 +29,7 @@ export default function CheckoutPage() {
     subtotal,
     discount,
     tax,
+    pickupFee,
     total,
     coupon,
     couponError,
@@ -55,8 +57,8 @@ export default function CheckoutPage() {
               note,
             })),
             couponCode: coupon?.code,
-            pickupSlot,
-          }
+          pickupSlot,
+        }
         : null,
     [coupon?.code, items, pickupSlot],
   );
@@ -227,6 +229,46 @@ export default function CheckoutPage() {
     }
   }
 
+  async function handleCashOrderClick() {
+    if (items.length === 0) {
+      router.push("/menu");
+      return;
+    }
+
+    if (!isLoggedIn) {
+      router.push("/login?callbackUrl=/checkout");
+      return;
+    }
+
+    if (!pickupSlot) {
+      setPickupError("Choose a pickup time before placing the order.");
+      return;
+    }
+
+    if (!checkoutPayload) {
+      setPaymentError("Checkout details are not ready.");
+      return;
+    }
+
+    setIsPaying(true);
+    setPaymentError(null);
+
+    try {
+      const createdOrder = await createCashCheckoutOrder({
+        ...checkoutPayload,
+        checkoutAttemptId: getOrCreateCheckoutAttemptId(),
+      });
+
+      clearCheckoutAttemptId();
+      clearPendingCheckout();
+      clearCart();
+      router.push(`/orders/${createdOrder.orderNumber}`);
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : "Cash order could not be placed.");
+      setIsPaying(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#f6f6f4] text-[#171717]">
       <CustomerNav />
@@ -364,6 +406,12 @@ export default function CheckoutPage() {
               <span>Tax</span>
               <span>Rs {tax}</span>
             </div>
+            {pickupFee > 0 ? (
+              <div className="flex justify-between text-[#8a5a00]">
+                <span>ASAP priority fee</span>
+                <span>Rs {pickupFee}</span>
+              </div>
+            ) : null}
             <div className="flex justify-between text-base font-black text-[#171717]">
               <span>Total</span>
               <span>Rs {total}</span>
@@ -390,17 +438,30 @@ export default function CheckoutPage() {
               </Link>
             </div>
           ) : null}
-          <button
-            type="button"
-            onClick={handlePaymentClick}
-            disabled={isPaying}
-            aria-disabled={!canPay || isPaying}
-            className={`mt-6 flex justify-center rounded-md px-5 py-4 font-black text-white transition ${
-              canPay && !isPaying ? "bg-[#d21f32] hover:bg-[#b91c2b]" : "bg-[#9a9a92]"
-            }`}
-          >
-            {isPaying ? "Starting payment..." : items.length > 0 ? "Pay with Razorpay" : "Back to menu"}
-          </button>
+          <div className="mt-6 grid gap-3">
+            <button
+              type="button"
+              onClick={handlePaymentClick}
+              disabled={isPaying}
+              aria-disabled={!canPay || isPaying}
+              className={`flex justify-center rounded-md px-5 py-4 font-black text-white transition ${
+                canPay && !isPaying ? "bg-[#d21f32] hover:bg-[#b91c2b]" : "bg-[#9a9a92]"
+              }`}
+            >
+              {isPaying ? "Starting payment..." : items.length > 0 ? "Pay online" : "Back to menu"}
+            </button>
+            {items.length > 0 ? (
+              <button
+                type="button"
+                onClick={handleCashOrderClick}
+                disabled={isPaying}
+                aria-disabled={!canPay || isPaying}
+                className="flex justify-center rounded-md border border-[#d21f32] bg-white px-5 py-3 font-black text-[#d21f32] transition hover:bg-[#fff0f2] disabled:border-[#9a9a92] disabled:text-[#9a9a92]"
+              >
+                Cash at counter
+              </button>
+            ) : null}
+          </div>
           </aside>
         </div>
       </section>

@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { updateAdminOrderStatus } from "@/lib/admin-orders";
 
 const labels: Record<string, string> = {
+  PENDING_PAYMENT: "Pending payment",
   PAID: "Placed",
   PLACED: "Placed",
   PREPARING: "Preparing",
@@ -15,6 +16,7 @@ const labels: Record<string, string> = {
 };
 
 const fallbackTransitions: Record<string, string[]> = {
+  PENDING_PAYMENT: ["PLACED", "CANCELLED"],
   PAID: ["PREPARING", "CANCELLED"],
   PLACED: ["PREPARING", "CANCELLED"],
   CONFIRMED: ["PREPARING", "CANCELLED"],

@@ -40,6 +40,7 @@ export type LiveQueueOrder = {
   customer: {
     name: string | null;
     email: string;
+    phone?: string | null;
   };
   itemPreview: string[];
 };

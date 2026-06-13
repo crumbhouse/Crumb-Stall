@@ -79,9 +79,9 @@ export default function CartPage() {
                   return (
                     <article
                       key={item.id}
-                      className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 rounded-lg border border-[#e8e8e3] bg-white p-3 shadow-sm sm:grid-cols-[104px_minmax(0,1fr)_140px]"
+                      className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 rounded-lg border border-[#e8e8e3] bg-white p-3 shadow-sm sm:grid-cols-[104px_minmax(0,1fr)_140px] sm:gap-4"
                     >
-                      <div className="overflow-hidden rounded-lg bg-[#f1f1ee]">
+                      <div className="h-24 overflow-hidden rounded-lg bg-[#f1f1ee] sm:h-28">
                         {imageUrl ? (
                           <Image
                             src={imageUrl}
@@ -89,10 +89,10 @@ export default function CartPage() {
                             width={160}
                             height={120}
                             unoptimized
-                            className="h-24 w-full object-cover sm:h-full"
+                            className="h-full w-full object-cover"
                           />
                         ) : (
-                          <div className="flex h-24 items-center justify-center text-2xl font-black text-[#c9c9c1] sm:h-full">
+                          <div className="flex h-full items-center justify-center text-2xl font-black text-[#c9c9c1]">
                             {item.name.slice(0, 2)}
                           </div>
                         )}
@@ -102,17 +102,6 @@ export default function CartPage() {
                         <p className="mt-1 text-sm font-semibold text-[#646464]">
                           {item.category.name} · Rs {item.finalPrice} each
                         </p>
-                        <label className="mt-3 block">
-                          <span className="text-sm font-black text-[#555]">Special instructions</span>
-                          <textarea
-                            value={note}
-                            onChange={(event) => updateItemNote(item.id, event.target.value)}
-                            rows={1}
-                            maxLength={120}
-                            placeholder="Example: less spicy, no onion, extra chutney"
-                            className="mt-2 w-full resize-none rounded-md border border-[#e8e8e3] bg-[#f9f9f7] px-3 py-2 text-sm font-semibold text-[#171717] outline-none placeholder:text-[#9a9a92] focus:border-[#d21f32]"
-                          />
-                        </label>
                       </div>
                       <div className="col-span-2 flex items-center justify-between gap-3 border-t border-[#eeeeea] pt-3 sm:col-span-1 sm:flex-col sm:items-end sm:justify-between sm:border-t-0 sm:pt-0">
                         <div className="flex items-center rounded-md border border-[#e8e8e3] bg-[#f9f9f7]">
@@ -145,6 +134,17 @@ export default function CartPage() {
                           </button>
                         </div>
                       </div>
+                      <label className="col-span-2 block border-t border-[#eeeeea] pt-3 sm:col-span-3">
+                        <span className="text-sm font-black text-[#555]">Special instructions</span>
+                        <textarea
+                          value={note}
+                          onChange={(event) => updateItemNote(item.id, event.target.value)}
+                          rows={2}
+                          maxLength={120}
+                          placeholder="Example: less spicy, no onion, extra chutney"
+                          className="mt-2 w-full resize-none rounded-md border border-[#e8e8e3] bg-[#f9f9f7] px-3 py-2 text-sm font-semibold text-[#171717] outline-none placeholder:text-[#9a9a92] focus:border-[#d21f32]"
+                        />
+                      </label>
                     </article>
                   );
                 })}

@@ -5,6 +5,8 @@ import { AdminShell } from "@/components/admin-shell";
 import { OrderLiveRefresh } from "@/components/order-live-refresh";
 import { getAdminOrder } from "@/lib/admin-orders-server";
 
+export const runtime = "nodejs";
+
 export default async function AdminOrderDetailPage({
   params,
 }: {
@@ -54,7 +56,7 @@ export default async function AdminOrderDetailPage({
           </p>
           <h1 className="mt-2 text-3xl font-black">{order.orderNumber}</h1>
           <p className="mt-1 text-sm font-semibold text-stone-500">
-            {order.customer.name ?? "Customer"} · {order.customer.email}
+            {order.customer.name ?? "Customer"} · {formatCustomerContact(order.customer)}
           </p>
         </div>
         <span className="w-fit rounded-full bg-orange-50 px-4 py-2 text-sm font-black text-orange-700">
@@ -143,9 +145,9 @@ export default async function AdminOrderDetailPage({
             <div className="mt-4 space-y-3 text-sm text-stone-600">
               <SummaryRow label="Placed" value={formatDateTime(order.placedAt)} />
               <SummaryRow label="Pickup" value={formatDateTime(order.pickupTime)} />
-              <SummaryRow label="Payment" value={formatPaymentStatus(order.payment?.status)} />
-              <SummaryRow label="Provider" value={order.payment?.provider ?? "Not available"} />
-              <SummaryRow label="Payment ID" value={order.payment?.paymentId ?? "Not available"} />
+              <SummaryRow label="Payment" value={formatPaymentStatus(order.payment?.status, order.status)} />
+              <SummaryRow label="Provider" value={order.payment?.provider ?? "Cash at counter"} />
+              <SummaryRow label="Payment ID" value={order.payment?.paymentId ?? "Counter cash"} />
               <SummaryRow label="Subtotal" value={`Rs ${order.subtotalAmount}`} />
               {order.discountAmount > 0 ? (
                 <SummaryRow
@@ -154,6 +156,9 @@ export default async function AdminOrderDetailPage({
                 />
               ) : null}
               <SummaryRow label="Tax" value={`Rs ${order.taxAmount}`} />
+              {order.pickupFeeAmount > 0 ? (
+                <SummaryRow label="ASAP priority fee" value={`Rs ${order.pickupFeeAmount}`} />
+              ) : null}
               <div className="flex justify-between gap-4 border-t border-stone-200 pt-3 text-base font-black text-stone-950">
                 <span>Total</span>
                 <span>Rs {order.totalAmount}</span>
@@ -175,6 +180,14 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatCustomerContact(customer: { email: string; phone?: string | null }) {
+  if (customer.phone) {
+    return customer.phone;
+  }
+
+  return customer.email.includes("@crumbstall.local") ? "Counter customer" : customer.email;
+}
+
 function formatDateTime(value: string | undefined | null) {
   if (!value) {
     return "Not available";
@@ -186,7 +199,7 @@ function formatDateTime(value: string | undefined | null) {
   }).format(new Date(value));
 }
 
-function formatPaymentStatus(status: string | undefined | null) {
+function formatPaymentStatus(status: string | undefined | null, orderStatus: string) {
   switch (status) {
     case "CAPTURED":
       return "Captured";
@@ -197,6 +210,6 @@ function formatPaymentStatus(status: string | undefined | null) {
     case "REFUNDED":
       return "Refunded";
     default:
-      return "Not available";
+      return orderStatus === "PENDING_PAYMENT" ? "Pending at counter" : "Paid at counter";
   }
 }

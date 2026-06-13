@@ -6,14 +6,14 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { MobileBar } from "@/components/mobile-bar";
 import { ReviewSection } from "@/components/review-section";
 import { getFoodBySlug, getFoodImageUrl } from "@/lib/catalog";
-import { getFavoriteIds } from "@/lib/favorites";
+import { getServerFavoriteIds } from "@/lib/favorites-server";
 import { getFoodReviews } from "@/lib/reviews";
 
 export default async function FoodDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [item, favorites, reviews] = await Promise.all([
     getFoodBySlug(slug),
-    getFavoriteIds(),
+    getServerFavoriteIds(),
     getFoodReviews(slug),
   ]);
 

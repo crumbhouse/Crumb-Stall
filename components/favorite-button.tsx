@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { addFavorite, removeFavorite } from "@/lib/favorites";
 
 export function FavoriteButton({
@@ -14,10 +16,17 @@ export function FavoriteButton({
   onChange?: (isFavorite: boolean) => void;
   className?: string;
 }) {
+  const router = useRouter();
+  const { status } = useSession();
   const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
   const [isPending, startTransition] = useTransition();
 
   function toggleFavorite() {
+    if (status !== "authenticated") {
+      router.push("/login?callbackUrl=/menu");
+      return;
+    }
+
     const nextValue = !isFavorite;
     setIsFavorite(nextValue);
     onChange?.(nextValue);

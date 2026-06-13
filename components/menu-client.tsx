@@ -143,8 +143,15 @@ export function MenuClient({
     setActiveFilter("all");
   }
 
-  function scrollToResults() {
-    document.getElementById("all-items")?.scrollIntoView({ block: "start" });
+  function scrollToResults(behavior: ScrollBehavior = "smooth") {
+    window.setTimeout(() => {
+      document.getElementById("all-items")?.scrollIntoView({ block: "start", behavior });
+    }, 0);
+  }
+
+  function selectCategory(categorySlug: string) {
+    setActiveCategory(categorySlug);
+    scrollToResults();
   }
 
   function handleFavoriteChange(slug: string, isFavorite: boolean) {
@@ -219,7 +226,7 @@ export function MenuClient({
               </button>
             </form>
 
-            <div className="mt-5 flex gap-2 overflow-x-auto pb-2">
+            <div className="mt-6 flex gap-3 overflow-x-auto pb-3">
               {quickFilters.map((filter) => {
                 const isActive = activeFilter === filter.id;
 
@@ -227,7 +234,12 @@ export function MenuClient({
                   <button
                     key={filter.id}
                     type="button"
-                    onClick={() => setActiveFilter(filter.id)}
+                    onClick={() => {
+                      setActiveFilter(filter.id);
+                      if (filter.id !== "all") {
+                        scrollToResults();
+                      }
+                    }}
                     className={`shrink-0 rounded-full border px-4 py-2 text-sm font-black shadow-sm transition ${
                       isActive
                         ? "border-[#d21f32] bg-[#d21f32] text-white"
@@ -297,7 +309,7 @@ export function MenuClient({
           <div className="mt-4 grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <button
               type="button"
-              onClick={() => setActiveCategory("all")}
+              onClick={() => selectCategory("all")}
               className={`h-full rounded-lg border p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${
                 activeCategory === "all"
                   ? "border-[#d21f32] bg-[#fff0f2]"
@@ -322,7 +334,7 @@ export function MenuClient({
                 <button
                   key={category.id}
                   type="button"
-                  onClick={() => setActiveCategory(category.slug)}
+                  onClick={() => selectCategory(category.slug)}
                   className={`h-full rounded-lg border p-4 text-left shadow-sm transition hover:-translate-y-0.5 ${
                     isActive
                       ? "border-[#d21f32] bg-[#fff0f2]"
@@ -383,7 +395,7 @@ export function MenuClient({
         </section>
       ) : null}
 
-      <section id="all-items" className="mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
+      <section id="all-items" className="scroll-mt-20 mx-auto max-w-7xl px-4 pb-12 sm:px-6 lg:px-8">
         <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-black uppercase tracking-[0.16em] text-[#d21f32]">
@@ -410,7 +422,7 @@ export function MenuClient({
           <div className="mb-5 flex gap-2 overflow-x-auto pb-2">
             <button
               type="button"
-              onClick={() => setActiveCategory("all")}
+              onClick={() => selectCategory("all")}
               className={`shrink-0 rounded-full border px-4 py-2 text-sm font-black shadow-sm transition ${
                 activeCategory === "all"
                   ? "border-[#d21f32] bg-[#d21f32] text-white"
@@ -426,7 +438,7 @@ export function MenuClient({
                 <button
                   key={category.id}
                   type="button"
-                  onClick={() => setActiveCategory(category.slug)}
+                  onClick={() => selectCategory(category.slug)}
                   className={`shrink-0 rounded-full border px-4 py-2 text-sm font-black shadow-sm transition ${
                     isActive
                       ? "border-[#d21f32] bg-[#d21f32] text-white"

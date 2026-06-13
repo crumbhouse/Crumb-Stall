@@ -2,7 +2,10 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth-options";
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
+const apiUrl =
+  process.env.SERVER_API_URL ??
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://localhost:3001/api/v1";
 
 export async function GET() {
   return proxyFavoritesRequest("/favorites");

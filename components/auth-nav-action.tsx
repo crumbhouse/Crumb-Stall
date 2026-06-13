@@ -58,6 +58,15 @@ export function AuthNavAction() {
       >
         Sign out
       </button>
+      <button
+        type="button"
+        onClick={() => signOut({ callbackUrl: "/menu" })}
+        className="inline-flex h-9 items-center justify-center rounded-full border border-stone-200 px-3 text-xs font-black text-[#171717] transition hover:bg-stone-50 sm:hidden"
+        aria-label="Sign out"
+        title="Sign out"
+      >
+        Sign out
+      </button>
     </div>
   );
 }

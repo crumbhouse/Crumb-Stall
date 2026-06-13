@@ -20,6 +20,7 @@ export type OrderDetail = {
   subtotalAmount: number;
   taxAmount: number;
   discountAmount: number;
+  pickupFeeAmount: number;
   totalAmount: number;
   couponCode: string | null;
   reviewRating: number | null;

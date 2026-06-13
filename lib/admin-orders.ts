@@ -11,6 +11,7 @@ export type AdminOrderSummary = {
   customer: {
     name: string | null;
     email: string;
+    phone?: string | null;
   };
   allowedStatusUpdates: string[];
 };
@@ -38,6 +39,7 @@ export type AdminOrderDetail = {
   subtotalAmount: number;
   taxAmount: number;
   discountAmount: number;
+  pickupFeeAmount: number;
   totalAmount: number;
   couponCode: string | null;
   timeline: Array<{
@@ -50,6 +52,7 @@ export type AdminOrderDetail = {
   customer: {
     name: string | null;
     email: string;
+    phone?: string | null;
   };
   pickupOtp: {
     code: string;
@@ -74,6 +77,47 @@ export type AdminOrderDetail = {
   }>;
   allowedStatusUpdates: string[];
 };
+
+export type AdminCounterOrderInput = {
+  customer: {
+    email?: string;
+    name?: string;
+    phone: string;
+  };
+  items: Array<{
+    foodItemId: string;
+    slug: string;
+    quantity: number;
+    note?: string;
+  }>;
+  couponCode?: string;
+  pickupSlot: {
+    id: string;
+    label: string;
+    minutesFromNow: number;
+    fee?: number;
+  };
+  paymentCollected: boolean;
+};
+
+export async function createAdminCounterOrder(input: AdminCounterOrderInput) {
+  const response = await fetch("/api/admin/orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Counter order could not be created"));
+  }
+
+  return (await response.json()) as {
+    id: string;
+    orderNumber: string;
+    status: string;
+    totalAmount: number;
+  };
+}
 
 export async function getAdminOrders({
   page = 1,

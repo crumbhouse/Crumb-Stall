@@ -11,6 +11,7 @@ const links = [
   { href: "/admin", label: "Dashboard", icon: "D" },
   { href: "/admin/menu", label: "Menu", icon: "M" },
   { href: "/admin/orders", label: "Orders", icon: "O" },
+  { href: "/admin/orders/create", label: "Counter order", icon: "CO" },
   { href: "/admin/coupons", label: "Coupons", icon: "%" },
   { href: "/admin/reviews", label: "Reviews", icon: "R" },
   { href: "/admin/customers", label: "Customers", icon: "C" },
